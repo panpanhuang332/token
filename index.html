@@ -386,7 +386,7 @@ footer a{word-break:break-all}
 
   <div class="card def">
     <span class="deftag">白話定義</span>
-    <p>最主流的做法叫 <strong>BPE(Byte Pair Encoding,位元組對編碼)</strong>:從最小單位「位元組(byte)」出發,統計哪兩個相鄰單位<strong>最常一起出現</strong>,把它們合併成一條新詞條,然後不斷重複,直到建出一本約 <span class="num">10 萬~20 萬</span>條的<strong>詞彙表(vocabulary)</strong>。切句子時,分詞器會盡量用表裡「最大塊」的詞條去比對。</p>
+    <p>最主流的做法叫 <strong>BPE(Byte Pair Encoding,位元組對編碼)</strong>。先認識「位元組(byte)」:它是電腦儲存資料的基本小格子,一個英文字母佔 <span class="num">1</span> 格、一個中文字佔 <span class="num">3</span> 格。BPE 從這些小格子出發,統計哪兩個相鄰單位<strong>最常一起出現</strong>,把它們合併成一條新詞條,然後不斷重複,直到建出一本約 <span class="num">10 萬~20 萬</span>條的<strong>詞彙表(vocabulary)</strong>。切句子時,分詞器會盡量用表裡「最大塊」的詞條去比對。</p>
   </div>
 
   <div class="card example">
@@ -428,7 +428,7 @@ footer a{word-break:break-all}
   <h3>中文:一個字通常 1 個 token,但不一定</h3>
   <div class="card def">
     <span class="deftag">白話定義</span>
-    <p>電腦儲存文字用 UTF-8 編碼,裡面<strong>一個中文字 = 3 個位元組(bytes)</strong>。分詞器的詞彙表如果收錄了這個字,它就是 1 個 token;<strong>罕用字</strong>(例如「龘」「彧」)可能不在表裡,就會退回位元組層級,被拆成 <span class="num">2~3</span> 個 token。平均來說,中文大約是 <strong><span class="num">1~1.5</span> token/字,依分詞器而異</strong>——這是保守的粗略範圍,不是定律,最準的方法是用本頁工具實際測。</p>
+    <p>電腦儲存文字用一套叫 UTF-8 的通用規則(就是把每個字裝進第 2 章說的「小格子」裡),其中<strong>一個中文字 = 3 個位元組(bytes)</strong>。分詞器的詞彙表如果收錄了這個字,它就是 1 個 token;<strong>罕用字</strong>(例如「龘」「彧」)可能不在表裡,就會退回位元組層級,被拆成 <span class="num">2~3</span> 個 token。平均來說,中文大約是 <strong><span class="num">1~1.5</span> token/字,依分詞器而異</strong>——這是保守的粗略範圍,不是定律,最準的方法是用本頁工具實際測。</p>
   </div>
 
   <div class="card example">
@@ -447,7 +447,7 @@ footer a{word-break:break-all}
   <h3>語言稅(tokenization premium):一個真實的公平性議題</h3>
   <div class="card def">
     <span class="deftag">白話定義</span>
-    <p>分詞器的詞彙表是「投票」出來的,而訓練語料裡<strong>英文佔大宗</strong>,所以英文分到最多「大塊零件」。許多非英語語言(尤其資源較少的語言)表達<strong>同樣的內容要花更多 token</strong>——意思是:<strong>同樣的話更貴、也更快塞滿上下文窗口(context window)</strong>。這不是陰謀論,而是 AI 公平性領域<strong>真實的研究議題</strong>,有研究把它稱為「tokenization premium(語言稅)」。</p>
+    <p>分詞器的詞彙表是「投票」出來的,而訓練語料裡<strong>英文佔大宗</strong>,所以英文分到最多「大塊零件」。許多非英語語言(尤其資源較少的語言)表達<strong>同樣的內容要花更多 token</strong>——意思是:<strong>同樣的話更貴、也更快塞滿上下文窗口(context window,下一章的主角)</strong>。這不是陰謀論,而是 AI 公平性領域<strong>真實的研究議題</strong>,有研究把它稱為「tokenization premium(語言稅)」。</p>
   </div>
   <div class="card advanced">
     <span class="deftag">一句進階補充</span>
@@ -496,7 +496,7 @@ footer a{word-break:break-all}
 
   <div class="card def">
     <span class="deftag">白話定義</span>
-    <p>每個 token 進入模型前,會先被轉成一長串數字(稱為 embedding,嵌入向量);模型讀完桌面上所有 token 後,只做一件事:<strong>預測下一個 token</strong>。所謂「生成一段話」,就是把這個動作重複幾百、幾千次。</p>
+    <p>每個 token 進入模型前,會先被轉成一長串數字,稱為嵌入向量(embedding)——可以想成幫每塊積木標上一組「座標」,意思相近的 token 座標也相近(「貓」和「狗」離得近,「貓」和「微積分」離得遠)。模型讀完桌面上所有 token 後,只做一件事:<strong>預測下一個 token</strong>。所謂「生成一段話」,就是把這個動作重複幾百、幾千次。</p>
   </div>
 
   <div class="card example">
@@ -517,7 +517,7 @@ footer a{word-break:break-all}
 
   <div class="card metaphor">
     <span class="tag">生活比喻</span>
-    <p>API 的計費像「按秒計費的國際電話」,只是單位不是秒,是 token。你講的每一塊、AI 回的每一塊,甚至 AI 心裡默念的每一塊,都在跳表。以下 8 個機制,每個都配一個小例子。</p>
+    <p>先認識一個詞:工程師寫程式直接「點餐」呼叫 AI 模型的服務窗口,叫做 <strong>API(application programming interface,應用程式介面)</strong>——你平常用的 ChatGPT 網頁是「餐廳內用」,API 則是「外送接單口」,而外送是按量計費的。API 的計費像「按秒計費的國際電話」,只是單位不是秒,是 token:你送的每一塊、AI 回的每一塊,甚至 AI 心裡默念的每一塊,都在跳表。報價的標準單位是 <strong>MTok(每 100 萬 tokens)</strong>,例如「$5/MTok」就是每 100 萬個 token 收 5 美元。以下 8 個機制,每個都配一個小例子。</p>
   </div>
 
   <ol class="nice">
@@ -532,7 +532,7 @@ footer a{word-break:break-all}
     </li>
     <li>
       <strong>提示快取(prompt caching):重複的開頭,約 1 折。</strong>
-      很多請求的開頭都一樣(例如同一份系統提示)。服務商把這段「背起來」,下次再讀就便宜:讀取價約為原價 <span class="num">1 折</span>。<br>
+      很多請求的開頭都一樣——例如「系統提示(system prompt)」:開發者放在對話最前面、每一次請求都會重複送出的固定指示(像餐廳每張訂單都印一遍的店規)。服務商把這段「背起來」,下次再讀就便宜:讀取價約為原價 <span class="num">1 折</span>。<br>
       <span class="tiny">小例子:一份 10,000 token 的系統提示,GPT-5.5 原價每次 $0.05,快取命中後每次約 $0.005(快取輸入 $0.50/MTok)。</span>
     </li>
     <li>
