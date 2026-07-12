@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Token:AI 的計費單位與思考單位|LLM Token 完全圖解</title>
+<meta name="description" content="給高中生的 LLM token 互動教學:token 是什麼、中文為什麼和英文不一樣、AI 公司怎麼靠 token 收錢。附即時分詞器、中英對照與費用試算機。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ========== 基礎與色票 ==========
+   主題母題:token = 彩色文字方塊。
+   色票:墨藍底文字 + 冷白背景 + 8 色 token 粉彩塊(藍/青/琥珀/桃紅/紫/綠/橘/靛)。 */
+:root{
+  --bg:#f3f5fa;
+  --card:#ffffff;
+  --ink:#20263b;
+  --muted:#5b6478;
+  --line:#dde2ee;
+  --brand:#2f56c9;
+  --brand-deep:#1d3a92;
+  --warn-bg:#fff3e2;
+  --warn-ink:#8a4b00;
+  --ok:#0c7a5c;
+  --bad:#bb2b4d;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  --sans:'Noto Sans TC',-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;
+  --t1-bg:#dbe7ff;--t1-ink:#2450b8;
+  --t2-bg:#d2f3ec;--t2-ink:#0c7a6c;
+  --t3-bg:#ffeccb;--t3-ink:#95610a;
+  --t4-bg:#ffdfea;--t4-ink:#b02d63;
+  --t5-bg:#e8e0ff;--t5-ink:#5f3ec2;
+  --t6-bg:#def2d4;--t6-ink:#3a7d22;
+  --t7-bg:#ffe3d2;--t7-ink:#ad4a12;
+  --t8-bg:#d6effa;--t8-ink:#0b6e8f;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+body{
+  font-family:var(--sans);background:var(--bg);color:var(--ink);
+  font-size:16px;line-height:1.9;letter-spacing:.02em;
+  -webkit-font-smoothing:antialiased;
+}
+main{max-width:880px;margin:0 auto;padding:0 16px}
+h1,h2,h3,h4{line-height:1.4;letter-spacing:.03em}
+p{margin:0 0 1em}
+a{color:var(--brand)}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{
+  outline:3px solid var(--brand);outline-offset:2px;border-radius:4px;
+}
+code,.mono{font-family:var(--mono)}
+img{max-width:100%}
+::selection{background:var(--t1-bg)}
+
+/* ========== 頂部導覽 ========== */
+#topnav{
+  position:fixed;top:0;left:0;right:0;z-index:50;
+  background:rgba(255,255,255,.94);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);
+}
+#progressbar{height:4px;background:linear-gradient(90deg,var(--t1-ink),var(--t2-ink),var(--t3-ink),var(--t4-ink),var(--t5-ink));width:0%;transition:width .1s linear}
+.navrow{display:flex;align-items:center;gap:10px;padding:8px 14px;max-width:920px;margin:0 auto}
+.navrow .brandmark{font-weight:900;font-size:15px;white-space:nowrap;text-decoration:none;color:var(--ink)}
+.brandmark .chip{display:inline-block;padding:0 5px;border-radius:6px;font-family:var(--mono);font-size:13px;margin-right:1px}
+#tocbox{margin-left:auto;position:relative}
+#tocbox>summary{
+  list-style:none;cursor:pointer;font-size:14px;font-weight:700;
+  border:1px solid var(--line);border-radius:10px;padding:5px 14px;background:#fff;
+}
+#tocbox>summary::-webkit-details-marker{display:none}
+#tocbox[open]>summary{background:var(--t1-bg)}
+#tocbox .menu{
+  position:absolute;right:0;top:calc(100% + 8px);background:#fff;border:1px solid var(--line);
+  border-radius:12px;box-shadow:0 12px 32px rgba(32,38,59,.16);min-width:250px;padding:8px;
+  max-height:min(70vh,520px);overflow:auto;
+}
+#tocbox .menu a{display:block;padding:7px 12px;border-radius:8px;text-decoration:none;color:var(--ink);font-size:14px}
+#tocbox .menu a:hover{background:var(--t1-bg)}
+#tocbox .menu a b{font-family:var(--mono);color:var(--brand);margin-right:6px;font-size:12px}
+
+/* ========== 章節骨架 ========== */
+section.ch{padding:56px 0 8px}
+.chkicker{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.chkicker .no{
+  font-family:var(--mono);font-weight:700;font-size:13px;color:#fff;background:var(--ink);
+  border-radius:8px;padding:2px 10px;
+}
+.chkicker .lab{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.12em}
+section.ch>h2{font-size:clamp(24px,5.4vw,34px);font-weight:900;margin-bottom:18px}
+section.ch>h2 .hl{border-radius:8px;padding:0 6px}
+h3{font-size:19px;font-weight:900;margin:30px 0 12px;display:flex;align-items:center;gap:8px}
+h3::before{content:"";width:14px;height:14px;border-radius:4px;background:var(--t1-ink);flex:none}
+section.ch:nth-of-type(3n) h3::before{background:var(--t4-ink)}
+section.ch:nth-of-type(3n+1) h3::before{background:var(--t2-ink)}
+section.ch:nth-of-type(3n+2) h3::before{background:var(--t3-ink)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px 18px;margin:16px 0}
+.metaphor{
+  border-left:6px solid var(--t3-ink);background:linear-gradient(0deg,#fff,#fffaf0);
+}
+.metaphor .tag,.deftag{
+  display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:1px 12px;margin-bottom:8px;
+}
+.metaphor .tag{background:var(--t3-bg);color:var(--t3-ink)}
+.def{border-left:6px solid var(--t1-ink)}
+.def .deftag{background:var(--t1-bg);color:var(--t1-ink)}
+.example{border-left:6px solid var(--t2-ink)}
+.example .deftag{background:var(--t2-bg);color:var(--t2-ink)}
+.advanced{border-left:6px solid var(--t5-ink)}
+.advanced .deftag{background:var(--t5-bg);color:var(--t5-ink)}
+.notice{
+  background:var(--warn-bg);color:var(--warn-ink);border:1px solid #f0ce9a;
+  border-radius:12px;padding:12px 16px;font-size:14.5px;margin:14px 0;line-height:1.8;
+}
+.tiny{font-size:13px;color:var(--muted)}
+.kbd-note{font-size:13.5px;color:var(--muted);margin-top:8px}
+ul.nice,ol.nice{margin:0 0 1em;padding-left:1.4em}
+ul.nice li,ol.nice li{margin:.45em 0}
+strong{font-weight:700}
+.num{font-family:var(--mono)}
+
+/* token 方塊(全站母題) */
+.tk{
+  display:inline-block;font-family:var(--mono);font-size:14.5px;line-height:1.5;
+  padding:2px 7px;margin:2.5px 2px;border-radius:7px;white-space:pre-wrap;word-break:break-all;
+  border:1px solid rgba(32,38,59,.08);
+}
+.tk.c0{background:var(--t1-bg);color:var(--t1-ink)}
+.tk.c1{background:var(--t2-bg);color:var(--t2-ink)}
+.tk.c2{background:var(--t3-bg);color:var(--t3-ink)}
+.tk.c3{background:var(--t4-bg);color:var(--t4-ink)}
+.tk.c4{background:var(--t5-bg);color:var(--t5-ink)}
+.tk.c5{background:var(--t6-bg);color:var(--t6-ink)}
+.tk.c6{background:var(--t7-bg);color:var(--t7-ink)}
+.tk.c7{background:var(--t8-bg);color:var(--t8-ink)}
+
+/* ========== Hero ========== */
+#c0{padding-top:96px;text-align:left}
+#c0 .herotitle{font-size:clamp(30px,7.4vw,52px);font-weight:900;line-height:1.35;margin-bottom:14px}
+#c0 .herotitle .tk{font-size:.82em;padding:1px 10px;border-radius:10px;font-weight:700}
+#c0 .onesent{font-size:clamp(16px,3.4vw,19px);color:var(--muted);max-width:640px;margin-bottom:26px}
+#c0 .onesent b{color:var(--ink)}
+
+/* ========== 分詞器元件 ========== */
+.tok-widget textarea{
+  width:100%;min-height:96px;resize:vertical;font-family:var(--sans);font-size:16px;line-height:1.8;
+  border:2px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff;color:var(--ink);
+}
+.tok-widget textarea:focus{border-color:var(--brand)}
+.tok-stats{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.stat{
+  background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 16px;min-width:104px;
+}
+.stat .v{font-family:var(--mono);font-weight:700;font-size:24px;display:block;line-height:1.3}
+.stat .k{font-size:12.5px;color:var(--muted)}
+.mode-chip{align-self:center;font-size:13px;font-weight:700;border-radius:999px;padding:4px 14px}
+.mode-chip.real{background:var(--t2-bg);color:var(--t2-ink)}
+.mode-chip.loading{background:var(--t1-bg);color:var(--t1-ink)}
+.tok-out{
+  background:#fff;border:1px dashed var(--line);border-radius:12px;padding:12px;min-height:56px;
+}
+.est-banner{
+  display:none;font-size:17px;font-weight:900;background:var(--warn-bg);color:var(--warn-ink);
+  border:2px solid #e8a33d;border-radius:12px;padding:12px 16px;margin:12px 0;
+}
+.tok-widget.estimating .est-banner{display:block}
+.tool-note{font-size:13.5px;color:var(--muted);margin-top:10px}
+
+/* ========== BPE 動畫 ========== */
+.bpe-stage{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+.bpe-line{margin:6px 0;font-family:var(--mono);font-size:15px}
+.bpe-word{margin-right:18px;display:inline-block}
+.bpe-cap{font-size:14.5px;margin-top:12px;min-height:3.4em}
+.bpe-cap b{color:var(--brand-deep)}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+button.btn{
+  font-family:var(--sans);font-size:14.5px;font-weight:700;cursor:pointer;
+  border:2px solid var(--ink);background:#fff;color:var(--ink);border-radius:10px;padding:7px 18px;
+}
+button.btn:hover{background:var(--t1-bg)}
+button.btn.primary{background:var(--ink);color:#fff}
+button.btn.primary:hover{background:var(--brand-deep);border-color:var(--brand-deep)}
+button.btn:disabled{opacity:.4;cursor:not-allowed}
+.tk.merged{animation:pop .5s ease}
+@keyframes pop{0%{transform:scale(.6)}70%{transform:scale(1.12)}100%{transform:scale(1)}}
+
+/* ========== 表格 ========== */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:#fff;margin:14px 0 4px;-webkit-overflow-scrolling:touch}
+table.price{border-collapse:collapse;width:100%;min-width:640px;font-size:14.5px}
+table.price caption{text-align:left;font-weight:900;font-size:16px;padding:14px 16px 6px}
+table.price th,table.price td{padding:10px 14px;border-top:1px solid var(--line);text-align:left;vertical-align:top}
+table.price thead th{border-top:none;background:#f7f9fd;font-size:13px;color:var(--muted);white-space:nowrap}
+table.price td.num,table.price td.mono{font-family:var(--mono);white-space:nowrap;font-size:13.5px}
+table.price td.wrapnum{font-family:var(--mono);font-size:13.5px}
+table.price tbody tr:hover{background:#f7f9fd}
+.tsrc{font-size:13px;color:var(--muted);margin:6px 2px 22px}
+.sortbtn{font-size:13px;padding:4px 12px;margin:2px 0 6px}
+
+/* ========== 對照長條圖 ========== */
+.cmp-pairs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.cmp-pairs button{font-size:13.5px;padding:6px 12px;border-radius:999px;border-width:1.5px}
+.cmp-pairs button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.cmp-row{margin:14px 0}
+.cmp-row .lab{font-size:14px;margin-bottom:4px}
+.cmp-row .lab .lang{font-weight:900;font-family:var(--mono);font-size:12px;border-radius:6px;padding:1px 8px;margin-right:6px}
+.cmp-row.zh .lab .lang{background:var(--t4-bg);color:var(--t4-ink)}
+.cmp-row.en .lab .lang{background:var(--t1-bg);color:var(--t1-ink)}
+.bar-outer{background:#eef1f8;border-radius:8px;height:30px;position:relative;overflow:hidden}
+.bar{height:100%;border-radius:8px;display:flex;align-items:center;color:#fff;font-family:var(--mono);font-size:13px;font-weight:700;padding-left:10px;min-width:2.2em;transition:width .5s ease}
+.cmp-row.zh .bar{background:var(--t4-ink)}
+.cmp-row.en .bar{background:var(--t1-ink)}
+.cmp-meta{font-size:13px;color:var(--muted);font-family:var(--mono)}
+.cmp-verdict{margin-top:10px;font-size:14.5px;background:var(--t3-bg);color:var(--t3-ink);border-radius:10px;padding:8px 14px;font-weight:700}
+.cmp-custom{display:grid;gap:10px;margin-top:18px}
+.cmp-custom input{font-size:15px;padding:9px 12px;border:2px solid var(--line);border-radius:10px;font-family:var(--sans);width:100%}
+
+/* ========== 試算機 ========== */
+.calc{display:grid;gap:14px}
+.calc .fieldrow{display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:640px){.calc .fieldrow{grid-template-columns:1fr 1fr}}
+.calc label.f{display:block;font-size:13.5px;font-weight:700;color:var(--muted)}
+.calc select,.calc input[type="number"]{
+  width:100%;font-size:15px;padding:9px 12px;border:2px solid var(--line);border-radius:10px;
+  font-family:var(--mono);background:#fff;color:var(--ink);margin-top:4px;
+}
+.toggles{display:flex;gap:16px;flex-wrap:wrap}
+.toggles label{display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:700;cursor:pointer}
+.toggles input{width:20px;height:20px;accent-color:var(--brand)}
+.calc-alert{display:none;background:var(--warn-bg);color:var(--warn-ink);border:1.5px solid #e8a33d;border-radius:10px;padding:10px 14px;font-size:14px;font-weight:700}
+.calc-alert.show{display:block}
+.calc-result{background:var(--ink);color:#fff;border-radius:var(--radius);padding:18px}
+.calc-result .usd{font-family:var(--mono);font-size:clamp(26px,6vw,38px);font-weight:700}
+.calc-result .twd{font-family:var(--mono);font-size:17px;color:#bcd0ff;margin-top:2px}
+.calc-result .brk{font-size:13px;color:#aab4d0;margin-top:10px;font-family:var(--mono);line-height:1.8}
+.scalebtns{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.scalebtns .btn{background:transparent;color:#fff;border-color:#5a6a9c}
+.scalebtns .btn:hover{background:#334065}
+.scaleout{font-family:var(--mono);font-size:14px;color:#dfe7ff;margin-top:8px;min-height:1.6em}
+.presets{display:flex;gap:8px;flex-wrap:wrap}
+.presets .btn{font-size:13.5px}
+.preset-note{font-size:14px;background:var(--t2-bg);color:var(--t2-ink);border-radius:10px;padding:8px 14px;font-weight:700;display:none}
+.preset-note.show{display:block}
+.modechoice{display:flex;gap:14px;flex-wrap:wrap;font-size:14.5px;font-weight:700}
+.modechoice input{accent-color:var(--brand);width:18px;height:18px}
+.modechoice label{display:flex;gap:6px;align-items:center;cursor:pointer}
+
+/* ========== 測驗 ========== */
+.quiz-q{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin:14px 0}
+.quiz-q .qt{font-weight:900;margin-bottom:10px}
+.quiz-q .qt .qno{font-family:var(--mono);color:#fff;background:var(--t5-ink);border-radius:7px;padding:1px 9px;font-size:13px;margin-right:8px}
+.quiz-opts{display:grid;gap:8px}
+.quiz-opts button{
+  text-align:left;font-size:14.5px;padding:10px 14px;border:2px solid var(--line);border-radius:10px;
+  background:#fff;cursor:pointer;font-family:var(--sans);line-height:1.7;color:var(--ink);
+}
+.quiz-opts button:hover:not(:disabled){border-color:var(--brand)}
+.quiz-opts button.correct{border-color:var(--ok);background:#e8f7f1;font-weight:700}
+.quiz-opts button.wrong{border-color:var(--bad);background:#fdeef2}
+.quiz-expl{display:none;margin-top:12px;font-size:14.5px;background:var(--t1-bg);border-radius:10px;padding:10px 14px;color:var(--brand-deep)}
+.quiz-expl.show{display:block}
+#quizscore{font-weight:900;font-size:17px;background:var(--t5-bg);color:var(--t5-ink);border-radius:12px;padding:10px 18px;display:inline-block}
+
+/* ========== 詞彙表 ========== */
+dl.glossary{display:grid;gap:0;background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+dl.glossary .gi{padding:14px 18px;border-top:1px solid var(--line)}
+dl.glossary .gi:first-child{border-top:none}
+dl.glossary dt{font-weight:900}
+dl.glossary dt .en{font-family:var(--mono);font-size:13px;color:var(--brand);margin-left:6px;font-weight:600}
+dl.glossary dd{font-size:14.5px;color:var(--muted);margin-top:2px}
+
+/* ========== 問答卡/details ========== */
+details.qa{background:#fff;border:1px solid var(--line);border-radius:var(--radius);margin:14px 0;overflow:hidden}
+details.qa>summary{
+  cursor:pointer;font-weight:900;padding:15px 18px;list-style:none;display:flex;gap:10px;align-items:baseline;
+}
+details.qa>summary::-webkit-details-marker{display:none}
+details.qa>summary::before{content:"Q";font-family:var(--mono);color:#fff;background:var(--t4-ink);border-radius:7px;padding:0 9px;font-size:14px;flex:none}
+details.qa[open]>summary{border-bottom:1px dashed var(--line);background:#fdf7fa}
+details.qa .qa-body{padding:14px 18px}
+
+footer{border-top:1px solid var(--line);margin-top:64px;padding:32px 16px 48px;background:#fff}
+footer .fin{max-width:880px;margin:0 auto;font-size:13.5px;color:var(--muted)}
+footer a{word-break:break-all}
+
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+@media(max-width:480px){
+  body{font-size:15.5px}
+  .card{padding:16px 14px}
+  .stat{min-width:88px;padding:7px 12px}
+  .stat .v{font-size:20px}
+}
+</style>
+</head>
+<body>
+
+<nav id="topnav" aria-label="全站導覽">
+  <div id="progressbar" aria-hidden="true"></div>
+  <div class="navrow">
+    <a class="brandmark" href="#c0" aria-label="回到頁首">
+      <span class="chip" style="background:var(--t1-bg);color:var(--t1-ink)">To</span><span class="chip" style="background:var(--t4-bg);color:var(--t4-ink)">ken</span><span class="chip" style="background:var(--t3-bg);color:var(--t3-ink)">圖解</span>
+    </a>
+    <details id="tocbox">
+      <summary aria-label="開啟章節目錄">章節 ☰</summary>
+      <div class="menu">
+        <a href="#c0"><b>0</b>開場:即時分詞</a>
+        <a href="#c1"><b>1</b>Token 到底是什麼</a>
+        <a href="#c2"><b>2</b>分詞器怎麼切(BPE)</a>
+        <a href="#c3"><b>3</b>中文 vs 英文</a>
+        <a href="#c4"><b>4</b>上下文窗口</a>
+        <a href="#c5"><b>5</b>模型用 token 思考</a>
+        <a href="#c6"><b>6</b>Token 就是錢</a>
+        <a href="#c7"><b>7</b>三大 LLM 價格總表</a>
+        <a href="#c8"><b>8</b>互動工具區</a>
+        <a href="#c9"><b>9</b>快問快答</a>
+        <a href="#c10"><b>10</b>詞彙表與資料來源</a>
+      </div>
+    </details>
+  </div>
+</nav>
+
+<main>
+
+<!-- ============ 第 0 章 Hero ============ -->
+<section class="ch" id="c0">
+  <h1 class="herotitle">
+    <span class="tk c0">Token</span>:AI 的<span class="tk c3">計費單位</span>與<span class="tk c1">思考單位</span>
+  </h1>
+  <p class="onesent">AI 不是一個字一個字讀,而是<b>一塊一塊</b>讀;那個「塊」就叫 <b>token</b>。你打的每句話會先被切成 token,AI 公司也照 token 的數量跟你收錢。先玩玩看👇</p>
+
+  <div class="tok-widget card" data-tok-widget>
+    <label class="f" for="heroInput" style="font-weight:700;font-size:14px;color:var(--muted)">打一句話,馬上看它被切成幾塊:</label>
+    <textarea id="heroInput" data-tok-input placeholder="例如:我今天想吃滷肉飯,還是 pizza 好呢?">我今天想吃滷肉飯,還是 pizza 好呢?</textarea>
+    <div class="est-banner" data-est-banner>⚠ 目前為估算模式,非實際分詞(分詞器程式未能載入,以下數字僅為估計)</div>
+    <div class="tok-stats">
+      <div class="stat"><span class="v" data-tok-count>–</span><span class="k">token 數</span></div>
+      <div class="stat"><span class="v" data-char-count>–</span><span class="k">字元數</span></div>
+      <span class="mode-chip loading" data-mode-chip>分詞器載入中…</span>
+    </div>
+    <div class="tok-out" data-tok-out aria-live="polite"></div>
+    <p class="tool-note">本工具使用 OpenAI 開源分詞器(tiktoken 的 <code>o200k_base</code> 編碼,GPT-4o / GPT-5 系列同款);Claude 與 Gemini 的分詞器不同,實際 token 數會有出入。空格與換行也是 token 的一部分(以 ␣ 和 ⏎ 顯示)。</p>
+  </div>
+  <p class="tiny">看完這個網站,你就能跟同學解釋:token 是什麼、為什麼中文和英文切出來不一樣、AI 公司怎麼靠 token 收錢。</p>
+</section>
+
+<!-- ============ 第 1 章 ============ -->
+<section class="ch" id="c1">
+  <div class="chkicker"><span class="no">第 1 章</span><span class="lab">CONCEPT</span></div>
+  <h2>Token 到底是什麼</h2>
+
+  <div class="card metaphor">
+    <span class="tag">生活比喻</span>
+    <p>想像一列火車:整句話是「一整列火車」,字母或單一筆畫是「一顆顆螺絲」。AI 讀文字時,兩種都不用——它把句子拆成一節一節的「車廂」,有的車廂長、有的短。<strong>token 就是那些車廂</strong>。也可以想成樂高:同一面牆,你可以用 1×1 的小磚慢慢拼,也可以用現成的大塊零件快速拼;分詞器手上有一大盒「常見零件」,能用大塊就用大塊,拼不出來才退回小磚。</p>
+  </div>
+
+  <div class="card def">
+    <span class="deftag">白話定義</span>
+    <p>token 是 AI 模型讀和寫文字的<strong>最小單位</strong>。它<strong>不等於「字」,也不等於「詞」</strong>,而是介於兩者之間、<strong>由統計決定的「常見碎片」</strong>:在訓練資料裡越常一起出現的字母(或位元組)組合,越有機會被合併成一個 token。</p>
+  </div>
+
+  <div class="card example">
+    <span class="deftag">實際例子</span>
+    <p>英文單字 "unbelievable" 可能被切成 <span class="tk c0">un</span><span class="tk c2">belie</span><span class="tk c4">vable</span> 三塊(示意;各家分詞器切法不同)——注意這三塊都不是完整的「詞」,它們只是統計上常見的碎片。中文的「臺北市」依分詞器不同,可能是 1 個、2 個或 3 個 token。你可以現在就回到上面的<a href="#c0">即時分詞器</a>輸入這兩個詞,看 o200k 實測結果。</p>
+  </div>
+
+  <div class="card advanced">
+    <span class="deftag">一句進階補充</span>
+    <p>每個 token 在分詞器的「詞彙表(vocabulary)」裡都有一個固定編號,模型內部處理的其實是這些編號,而不是文字本身;現代分詞器的詞彙表大約有 10 萬~20 萬條。</p>
+  </div>
+</section>
+
+<!-- ============ 第 2 章 ============ -->
+<section class="ch" id="c2">
+  <div class="chkicker"><span class="no">第 2 章</span><span class="lab">TOKENIZER</span></div>
+  <h2>分詞器(tokenizer)怎麼切</h2>
+
+  <div class="card metaphor">
+    <span class="tag">生活比喻</span>
+    <p>想像你在幫全校訂便當,登記菜名時發現「排骨飯」被點了三千次。與其每次都寫「排、骨、飯」三個字,不如發明一個縮寫「🅿」代表整個詞——省時省紙。分詞器建詞彙表的過程就是這樣:<strong>把最常一起出現的組合,登記成一個新的「縮寫」</strong>,而且重複做幾十萬次。</p>
+  </div>
+
+  <div class="card def">
+    <span class="deftag">白話定義</span>
+    <p>最主流的做法叫 <strong>BPE(Byte Pair Encoding,位元組對編碼)</strong>:從最小單位「位元組(byte)」出發,統計哪兩個相鄰單位<strong>最常一起出現</strong>,把它們合併成一條新詞條,然後不斷重複,直到建出一本約 <span class="num">10 萬~20 萬</span>條的<strong>詞彙表(vocabulary)</strong>。切句子時,分詞器會盡量用表裡「最大塊」的詞條去比對。</p>
+  </div>
+
+  <div class="card example">
+    <span class="deftag">實際例子:BPE 逐步合併示意</span>
+    <p class="tiny">假設訓練資料裡只有三個單字:hug、hugs、hugging。按「下一步」看詞彙表怎麼長出來。</p>
+    <div class="bpe-stage">
+      <div id="bpeArea" aria-live="polite"></div>
+      <p class="bpe-cap" id="bpeCap"></p>
+      <div class="btnrow">
+        <button class="btn" id="bpePrev" type="button">← 上一步</button>
+        <button class="btn primary" id="bpeNext" type="button">下一步 →</button>
+        <button class="btn" id="bpeReset" type="button">重播</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card advanced">
+    <span class="deftag">一句進階補充</span>
+    <p>三大公司的分詞器<strong>各自不同</strong>:OpenAI 用開源的 <strong>tiktoken</strong>(現行編碼 <code>o200k_base</code>,約 20 萬詞條)、Google 用 <strong>SentencePiece</strong> 系列、Anthropic 的分詞器<strong>未公開</strong>——所以<strong>同一句話在三家切出來的 token 數不一樣</strong>,這件事第 6 章談錢的時候會變得很重要。</p>
+  </div>
+</section>
+
+<!-- ============ 第 3 章 ============ -->
+<section class="ch" id="c3">
+  <div class="chkicker"><span class="no">第 3 章</span><span class="lab">核心章節</span></div>
+  <h2>中文 vs 英文:<span class="hl" style="background:var(--t4-bg);color:var(--t4-ink)">誰比較「花 token」?</span></h2>
+
+  <div class="card metaphor">
+    <span class="tag">生活比喻</span>
+    <p>把 token 想成「行李箱格子」。英文像很多小件衣物,通常四件可以捲成一捲塞進一格;中文像厚毛衣,一件常常就要佔一格,遇到特別「蓬」的罕見字,甚至要拆開塞兩三格。同一趟旅行(同一個意思),兩種打包方式用掉的格子數不一樣——而 AI 公司是<strong>按格子數收錢</strong>的。</p>
+  </div>
+
+  <h3>英文的經驗法則</h3>
+  <div class="card def">
+    <span class="deftag">白話定義</span>
+    <p>OpenAI 與 Google 的官方經驗法則(官方經驗法則,非精確值):<strong><span class="num">1</span> token ≈ <span class="num">4</span> 個英文字元 ≈ <span class="num">0.75</span> 個英文單字</strong>;換句話說,<strong><span class="num">100</span> tokens ≈ <span class="num">75</span> 個英文單字</strong>。像 "the"、"and" 這種超常見單字通常整個是 1 個 token,長字才會被拆開。</p>
+  </div>
+
+  <h3>中文:一個字通常 1 個 token,但不一定</h3>
+  <div class="card def">
+    <span class="deftag">白話定義</span>
+    <p>電腦儲存文字用 UTF-8 編碼,裡面<strong>一個中文字 = 3 個位元組(bytes)</strong>。分詞器的詞彙表如果收錄了這個字,它就是 1 個 token;<strong>罕用字</strong>(例如「龘」「彧」)可能不在表裡,就會退回位元組層級,被拆成 <span class="num">2~3</span> 個 token。平均來說,中文大約是 <strong><span class="num">1~1.5</span> token/字,依分詞器而異</strong>——這是保守的粗略範圍,不是定律,最準的方法是用本頁工具實際測。</p>
+  </div>
+
+  <div class="card example">
+    <span class="deftag">實際例子</span>
+    <p>用本站的 o200k 分詞器實測看看:「天」「氣」這類常用字幾乎都是 1 字 1 token;把「魑魅魍魎」貼進<a href="#c0">分詞器</a>,你很可能會看到單一個字被拆成好幾塊(o200k 實測,結果依輸入而定)。同樣 20 個字的中文句子,token 數可能從 20 到 30 幾都有。</p>
+  </div>
+
+  <details class="qa">
+    <summary>思辨題:中文字數少但每字 token 多;英文字母多但 4 個字元才 1 token——同一個意思,到底誰划算?</summary>
+    <div class="qa-body">
+      <p><strong>答案:視句子與分詞器而定,請實測,不要背結論。</strong></p>
+      <p>兩股力量在拔河:中文<strong>字數少</strong>(「人工智慧」4 個字,英文要 "artificial intelligence" 23 個字元),但<strong>每個字的 token 效率較差</strong>;英文字元多,但分詞器對英文的壓縮特別好。哪邊贏,取決於句子用詞的常見程度、以及你用的是哪家的分詞器。與其背「中文比較貴」或「英文比較貴」,不如養成習慣:<strong>用下面的對照工具丟一組句子測測看</strong>。</p>
+    </div>
+  </details>
+
+  <h3>語言稅(tokenization premium):一個真實的公平性議題</h3>
+  <div class="card def">
+    <span class="deftag">白話定義</span>
+    <p>分詞器的詞彙表是「投票」出來的,而訓練語料裡<strong>英文佔大宗</strong>,所以英文分到最多「大塊零件」。許多非英語語言(尤其資源較少的語言)表達<strong>同樣的內容要花更多 token</strong>——意思是:<strong>同樣的話更貴、也更快塞滿上下文窗口(context window)</strong>。這不是陰謀論,而是 AI 公平性領域<strong>真實的研究議題</strong>,有研究把它稱為「tokenization premium(語言稅)」。</p>
+  </div>
+  <div class="card advanced">
+    <span class="deftag">一句進階補充</span>
+    <p>這也是各家不斷改版分詞器、擴大詞彙表的動機之一:詞條越多,非英語語言被拆碎的機率越低,但模型的輸出層也會變大,是工程上的取捨。</p>
+  </div>
+
+  <h3>動手實測:中英同義句對照</h3>
+  <div class="card" data-cmp-widget></div>
+</section>
+
+<!-- ============ 第 4 章 ============ -->
+<section class="ch" id="c4">
+  <div class="chkicker"><span class="no">第 4 章</span><span class="lab">CONTEXT WINDOW</span></div>
+  <h2>上下文窗口(context window):模型的記憶桌面</h2>
+
+  <div class="card metaphor">
+    <span class="tag">生活比喻</span>
+    <p>寫報告時,你的書桌就這麼大:課本、講義、筆記全部得攤在桌上你才「看得到」;桌面滿了,要放新的就得把舊的收走。模型的「工作記憶桌面」就是上下文窗口——<strong>桌面上放的不是紙,是 token</strong>。</p>
+  </div>
+
+  <div class="card def">
+    <span class="deftag">白話定義</span>
+    <p>上下文窗口(context window)是<strong>一次請求中,輸入+輸出合計能容納的 token 上限</strong>。超過就放不下:模型會拒絕、或「忘掉」前面的內容。為什麼要設上限?因為模型的注意力機制(attention)要讓每個 token 都去「看」其他 token,<strong>運算量隨長度快速成長</strong>——越長,越貴、越慢。</p>
+  </div>
+
+  <div class="card example">
+    <span class="deftag">實際例子</span>
+    <p>目前三家旗艦的窗口(2026 年 7 月,詳見<a href="#c7">第 7 章價格表</a>):OpenAI GPT-5.5 約 <span class="num">1M</span>(100 萬)token、Anthropic Claude 現行主力多為 <span class="num">1M</span>、Google Gemini 3.1 Pro 到 <span class="num">2M</span>(現役最大)。<span class="num">1M</span> token 大概是什麼概念?以官方經驗法則估算,約 75 萬個英文單字——差不多是《哈利波特》全套七集的量級(估算)。</p>
+  </div>
+
+  <div class="card advanced">
+    <span class="deftag">一句進階補充</span>
+    <p>窗口以 token 計,不以「字」計——呼應第 3 章:同一個 1M 窗口,「塞得下幾個中文字」和「幾個英文單字」是兩個不同的數字,而且依分詞器而異。</p>
+  </div>
+</section>
+
+<!-- ============ 第 5 章 ============ -->
+<section class="ch" id="c5">
+  <div class="chkicker"><span class="no">第 5 章</span><span class="lab">HOW IT THINKS</span></div>
+  <h2>知識面:模型「用 token 思考」</h2>
+
+  <div class="card metaphor">
+    <span class="tag">生活比喻</span>
+    <p>模型像一個超強的「文字接龍玩家」:你給它前半句,它每次只做一件事——猜下一塊該接什麼,接上之後再猜下一塊,一路接完整個回答。</p>
+  </div>
+
+  <div class="card def">
+    <span class="deftag">白話定義</span>
+    <p>每個 token 進入模型前,會先被轉成一長串數字(稱為 embedding,嵌入向量);模型讀完桌面上所有 token 後,只做一件事:<strong>預測下一個 token</strong>。所謂「生成一段話」,就是把這個動作重複幾百、幾千次。</p>
+  </div>
+
+  <div class="card example">
+    <span class="deftag">實際例子:2025 年後的關鍵新知——思考 token</span>
+    <p>新一代的「推理模型(reasoning model)」在給你答案之前,會先在內部「打草稿」:自己跟自己推演、驗算、否決錯誤路線。這些草稿也是一個一個 token 生成的,叫做<strong>推理/思考 token(reasoning tokens)</strong>。重點來了:<strong>草稿你看不到,但照樣按「輸出 token」的價格計費</strong>。一題數學的答案可能只有 200 字,背後卻燒掉了幾千個思考 token——第 6 章會把這筆帳實際算給你看。</p>
+  </div>
+
+  <div class="card advanced">
+    <span class="deftag">一句進階補充</span>
+    <p>「預測下一個 token」聽起來簡單,但為了預測得準,模型必須在內部學會文法、常識、甚至推理——這就是大型語言模型(LLM)能力的來源。</p>
+  </div>
+</section>
+
+<!-- ============ 第 6 章 ============ -->
+<section class="ch" id="c6">
+  <div class="chkicker"><span class="no">第 6 章</span><span class="lab">ECONOMICS</span></div>
+  <h2>經濟面:<span class="hl" style="background:var(--t3-bg);color:var(--t3-ink)">token 就是錢</span></h2>
+
+  <div class="card metaphor">
+    <span class="tag">生活比喻</span>
+    <p>API 的計費像「按秒計費的國際電話」,只是單位不是秒,是 token。你講的每一塊、AI 回的每一塊,甚至 AI 心裡默念的每一塊,都在跳表。以下 8 個機制,每個都配一個小例子。</p>
+  </div>
+
+  <ol class="nice">
+    <li>
+      <strong>輸入(input)與輸出(output)分開計價,輸出貴 4~6 倍。</strong>
+      「讀你的話」便宜,「生出新的話」貴——因為生成每個 token 都要把整個模型跑一輪。倍數(2026-07 官方定價):OpenAI 旗艦 GPT-5.5 約 <span class="num">6×</span>($5 → $30)、Anthropic 全線 <span class="num">5×</span>(如 Fable 5:$10 → $50)、Gemini 3.1 Pro 約 <span class="num">6×</span>($2 → $12)。<br>
+      <span class="tiny">小例子:同樣 1,000 個 token,用 GPT-5.5 當輸入只要 $0.005,當輸出要 $0.03——差 6 倍。</span>
+    </li>
+    <li>
+      <strong>看不見也要錢:思考 token 以「輸出價」計費。</strong><br>
+      <span class="tiny">小例子:一題數學,答案 200 字(約 300 token,估算),但模型內部打草稿用了 3,000 個思考 token。用 Claude Fable 5(輸出 $50/MTok)算:(3,000+300)×$50÷1,000,000 ≈ $0.165,約台幣 5.1 元(以 1 USD = 31 TWD 估算)——其中九成的錢花在你看不到的草稿上。</span>
+    </li>
+    <li>
+      <strong>提示快取(prompt caching):重複的開頭,約 1 折。</strong>
+      很多請求的開頭都一樣(例如同一份系統提示)。服務商把這段「背起來」,下次再讀就便宜:讀取價約為原價 <span class="num">1 折</span>。<br>
+      <span class="tiny">小例子:一份 10,000 token 的系統提示,GPT-5.5 原價每次 $0.05,快取命中後每次約 $0.005(快取輸入 $0.50/MTok)。</span>
+    </li>
+    <li>
+      <strong>批次處理(Batch API):不趕時間,打 5 折。</strong>
+      願意等(通常 24 小時內完成)的工作,OpenAI、Anthropic、Google 三家都<strong>5 折</strong>。<br>
+      <span class="tiny">小例子:要幫 1,000 篇文章做摘要,又不急著今天拿到?走 Batch,帳單直接砍半。</span>
+    </li>
+    <li>
+      <strong>長上下文加價門檻:塞太多,單價變貴。</strong>
+      Gemini 3.1 Pro 超過 <span class="num">20 萬</span> token 後,輸入變 <span class="num">2 倍</span>($2→$4)、輸出 <span class="num">1.5 倍</span>($12→$18);OpenAI GPT-5.5 / 5.4 超過約 <span class="num">27 萬</span> token 也有加價費率;<strong>Claude 現行 1M 窗口機種全程同價、無加價</strong>。<br>
+      <span class="tiny">小例子:第 8 章的試算機選 Gemini 3.1 Pro、輸入打 250,000,會看到費率自動跳高。</span>
+    </li>
+    <li>
+      <strong>標價 ≠ 有效成本:分詞器不同,token 數就不同。</strong>
+      兩家單價一樣,不代表同一段文字花一樣的錢——因為各家切出來的 token 數不一樣。實例:Anthropic 自 Opus 4.7 起(含 Sonnet 5、Fable 5)換用新分詞器,<strong>同樣文字的 token 數可能比舊款多出最多約 35%</strong>——單價沒變,帳單卻可能變貴。<br>
+      <span class="tiny">小例子:同一份 100 萬 token(舊分詞器計)的文件,若新分詞器切成 135 萬 token,即使單價相同,輸入費用也多 35%。</span>
+    </li>
+    <li>
+      <strong>訂閱制 ≠ API:兩種不同的商品。</strong>
+      ChatGPT Plus、Claude Pro、Google AI Pro 是「月費吃到飽(有額度)」的<strong>聊天產品</strong>;API 才是「按 token 計費」的<strong>開發者服務</strong>。名字常被混用:ChatGPT 是產品名,API 上的模型叫 GPT-5.5;Claude、Gemini 同理。<br>
+      <span class="tiny">小例子:訂了 ChatGPT Plus(US$20/月)不代表你能用 API 寫程式呼叫 GPT-5.5——那要另外按 token 付費。</span>
+    </li>
+    <li>
+      <strong>工具定義、系統提示、對話歷史,全都算輸入 token——聊越久,每一句都越貴。</strong>
+      每次你送出新訊息,<strong>整段對話歷史都會重新當成輸入</strong>再算一次錢。<br>
+      <span class="tiny">小例子:聊到第 50 句時,前面 49 句(可能好幾萬 token)每次都要重新計費——這正是「提示快取」存在的理由。</span>
+    </li>
+  </ol>
+
+  <div class="card advanced">
+    <span class="deftag">一句進階補充</span>
+    <p>有感換算:一篇 500 字的中文作文約 <span class="num">700</span> token(估算,以 1.4 token/字計)。拿去給 Claude Sonnet 5 讀(輸入 $2/MTok),成本約 $0.0014,<strong>約台幣 0.04 元</strong>;請它「寫」一篇同樣長度(輸出 $10/MTok)約 $0.007,<strong>約台幣 0.22 元</strong>(以 1 USD = 31 TWD 估算)。單次很便宜——但乘上百萬使用者,就是 AI 公司的整條營收。</p>
+  </div>
+</section>
+
+<!-- ============ 第 7 章 ============ -->
+<section class="ch" id="c7">
+  <div class="chkicker"><span class="no">第 7 章</span><span class="lab">PRICING</span></div>
+  <h2>三大 LLM 模型價格總表</h2>
+  <p>單位:<strong>美元 / 每 100 萬 tokens(MTok)</strong>。標示「—(見官方頁)」代表該欄位本次未查證,請直接查官方定價頁。每張表可按「依輸入價排序」重新排列(手機可左右捲動表格)。</p>
+
+  <h3>表 A|OpenAI(產品名 ChatGPT;API 模型如下)</h3>
+  <button class="btn sortbtn" type="button" data-sort-for="tblA">依輸入價排序</button>
+  <div class="tablewrap">
+    <table class="price" id="tblA">
+      <thead><tr><th>模型</th><th>輸入</th><th>快取輸入</th><th>輸出</th><th>上下文窗口</th><th>備註</th></tr></thead>
+      <tbody>
+        <tr><td>GPT-5.5</td><td class="num">$5.00</td><td class="num">$0.50</td><td class="num">$30.00</td><td>約 1M(輸出上限 128K)</td><td>旗艦;輸入超過約 270K 改長文費率 $10 / $45</td></tr>
+        <tr><td>GPT-5.5 Pro</td><td class="num">$30.00</td><td class="num">—(見官方頁)</td><td class="num">$180.00</td><td>約 1M</td><td>最高階推理,價格極高</td></tr>
+        <tr><td>GPT-5.4</td><td class="num">$2.50</td><td class="num">—(見官方頁)</td><td class="num">$15.00</td><td>約 1M</td><td>超過約 270K 改 $5 / $22.50</td></tr>
+        <tr><td>GPT-5.4 mini</td><td class="num">$0.75</td><td class="num">—(見官方頁)</td><td class="num">—(見官方頁)</td><td>—(見官方頁)</td><td>輸出價本次未查證</td></tr>
+        <tr><td>GPT-5.4 nano</td><td class="num">$0.20</td><td class="num">—(見官方頁)</td><td class="num">$1.25</td><td>—(見官方頁)</td><td>最便宜現役等級</td></tr>
+        <tr><td>GPT-5.3-Codex</td><td class="num">$1.75</td><td class="num">—(見官方頁)</td><td class="num">$14.00</td><td>—(見官方頁)</td><td>程式代理專用</td></tr>
+        <tr><td>GPT-5.6 Sol / Terra / Luna</td><td class="wrapnum">$5.00 / $2.50 / $1.00</td><td class="num">—(見官方頁)</td><td class="wrapnum">$30.00 / $15.00 / $6.00</td><td>—(見官方頁)</td><td>2026-07 限量預覽中,標註「Preview」</td></tr>
+        <tr><td>GPT-4.1 / mini / nano(前代)</td><td class="wrapnum">$2.00 / $0.40 / $0.10</td><td class="num">—(見官方頁)</td><td class="wrapnum">$8.00 / $1.60 / $0.40</td><td>1M</td><td>仍可用的長上下文舊系列</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tsrc">通用:快取輸入約原價 1 折;Batch 與 Flex 皆 5 折;推理模型的思考 token 以輸出價計費。<br>資料時間:2026 年 7 月;價格隨時可能調整,請以各官方定價頁為準。</p>
+
+  <h3>表 B|Anthropic(Claude)</h3>
+  <button class="btn sortbtn" type="button" data-sort-for="tblB">依輸入價排序</button>
+  <div class="tablewrap">
+    <table class="price" id="tblB">
+      <thead><tr><th>模型</th><th>輸入</th><th>輸出</th><th>上下文窗口</th><th>備註</th></tr></thead>
+      <tbody>
+        <tr><td>Claude Fable 5</td><td class="num">$10.00</td><td class="num">$50.00</td><td>1M(輸出上限 128K)</td><td>最高階 Mythos 級;Mythos 5 同價(限量開放)</td></tr>
+        <tr><td>Claude Opus 4.8</td><td class="num">$5.00</td><td class="num">$25.00</td><td>1M</td><td>旗艦;Fast Mode 另價 $10 / $50</td></tr>
+        <tr><td>Claude Sonnet 5</td><td class="wrapnum">$2.00(優惠至 2026-08-31,之後 $3.00)</td><td class="wrapnum">$10.00(之後 $15.00)</td><td>1M</td><td>2026-06-30 發布;新分詞器,同文字 token 數約為 Sonnet 4.6 的 1.0~1.35 倍</td></tr>
+        <tr><td>Claude Sonnet 4.6</td><td class="num">$3.00</td><td class="num">$15.00</td><td>1M</td><td>全程同價,無長文加價</td></tr>
+        <tr><td>Claude Haiku 4.5</td><td class="num">$1.00</td><td class="num">$5.00</td><td>200K</td><td>高量便宜款</td></tr>
+        <tr><td>Claude Opus 4.1(舊)</td><td class="num">$15.00</td><td class="num">$75.00</td><td>200K</td><td>舊旗艦,價格為 4.8 的 3 倍</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tsrc">通用:快取「讀取」0.1×;快取「寫入」1.25×(5 分鐘)或 2×(1 小時);Batch 5 折;<strong>1M 窗口機種無長上下文加價</strong>;Opus 4.7 起的新分詞器可能使同文字 token 數增加最多約 35%。<br>資料時間:2026 年 7 月;價格隨時可能調整,請以各官方定價頁為準。</p>
+
+  <h3>表 C|Google(Gemini)</h3>
+  <button class="btn sortbtn" type="button" data-sort-for="tblC">依輸入價排序</button>
+  <div class="tablewrap">
+    <table class="price" id="tblC">
+      <thead><tr><th>模型</th><th>輸入(≤200K / &gt;200K)</th><th>輸出(≤200K / &gt;200K)</th><th>上下文窗口</th><th>備註</th></tr></thead>
+      <tbody>
+        <tr><td>Gemini 3.5 Pro</td><td>未公布</td><td>未公布</td><td>未公布</td><td>2026 I/O 發表,截至 2026-07 未全面開放,標「即將推出」</td></tr>
+        <tr><td>Gemini 3.5 Flash</td><td class="num">$1.50</td><td class="num">$9.00</td><td>1M(輸出 64K)</td><td>2026-05-19 發布;快取讀取 $0.15</td></tr>
+        <tr><td>Gemini 3.1 Pro</td><td class="wrapnum">$2.00 / $4.00</td><td class="wrapnum">$12.00 / $18.00</td><td><strong>2M</strong>(現役最大)</td><td>旗艦;超過 200K 全程改高費率</td></tr>
+        <tr><td>Gemini 3 Flash</td><td class="num">$0.50</td><td class="num">$3.00</td><td>1M</td><td>平價主力</td></tr>
+        <tr><td>Gemini 3.1 Flash-Lite</td><td class="num">$0.25</td><td class="num">$1.50</td><td>1M</td><td>一線大廠最便宜等級之一</td></tr>
+        <tr><td>Gemini 2.5 Pro(前代)</td><td class="wrapnum">$1.25 / $2.50</td><td class="wrapnum">$10.00 / $15.00</td><td>1M</td><td>前代旗艦</td></tr>
+        <tr><td>Gemini 2.5 Flash(前代)</td><td class="num">$0.30</td><td class="num">$2.50</td><td>1M</td><td></td></tr>
+        <tr><td>Gemini 2.5 Flash-Lite(前代)</td><td class="num">$0.10</td><td class="num">$0.40</td><td>1M</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tsrc">通用:Batch 5 折;快取讀取約 1 折、另收儲存費(每小時 $1~$4.5/MTok);2026-04-01 起 Pro 系列取消免費層,Flash / Flash-Lite 保留限額免費;Google 搜尋 grounding 在 3.x 家族每月 5,000 次免費、之後 $14/千次。<br>資料時間:2026 年 7 月;價格隨時可能調整,請以各官方定價頁為準。</p>
+
+  <h3>通用折扣機制一覽</h3>
+  <div class="tablewrap">
+    <table class="price">
+      <thead><tr><th>機制</th><th>OpenAI</th><th>Anthropic</th><th>Google</th></tr></thead>
+      <tbody>
+        <tr><td>快取讀取</td><td>約原價 1 折</td><td>0.1×(另:寫入 1.25× / 5 分鐘,或 2× / 1 小時)</td><td>約 1 折,另收儲存費(每小時 $1~$4.5/MTok)</td></tr>
+        <tr><td>批次(Batch)</td><td>5 折(Flex 亦 5 折)</td><td>5 折</td><td>5 折</td></tr>
+        <tr><td>長上下文加價</td><td>GPT-5.5 / 5.4 超過約 270K 改長文費率</td><td>1M 窗口機種全程同價、無加價</td><td>Gemini 3.1 Pro 超過 200K 全程改高費率</td></tr>
+        <tr><td>思考 token</td><td>以輸出價計費</td><td>以輸出價計費</td><td>以輸出價計費</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tsrc">資料時間:2026 年 7 月;價格隨時可能調整,請以各官方定價頁為準。</p>
+
+  <h3>表 D|消費端訂閱(與 API 分開的商品)</h3>
+  <div class="tablewrap">
+    <table class="price">
+      <thead><tr><th>產品</th><th>月費(美元)</th></tr></thead>
+      <tbody>
+        <tr><td>ChatGPT:Free / Go / Plus(US$20)/ Business / Enterprise</td><td>依方案</td></tr>
+        <tr><td>Claude:Free / Pro US$20 / Max US$100 或 US$200</td><td>依方案</td></tr>
+        <tr><td>Google:AI Plus US$7.99 / AI Pro US$19.99 / AI Ultra 自 US$99.99 起</td><td>依方案</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tsrc">訂閱是「聊天產品的月費」,API 是「按 token 計費的開發者服務」,兩者是不同商品(見第 6 章第 7 點)。<br>資料時間:2026 年 7 月;價格隨時可能調整,請以各官方定價頁為準。</p>
+</section>
+
+<!-- ============ 第 8 章 ============ -->
+<section class="ch" id="c8">
+  <div class="chkicker"><span class="no">第 8 章</span><span class="lab">PLAYGROUND</span></div>
+  <h2>互動工具區</h2>
+
+  <h3 id="t81">8-1 即時分詞器(完整版)</h3>
+  <div class="tok-widget card" data-tok-widget>
+    <label style="font-weight:700;font-size:14px;color:var(--muted)" for="fullInput">輸入任何文字(中英混合、表情符號都可以):</label>
+    <textarea id="fullInput" data-tok-input placeholder="貼一段課文、歌詞或英文作文試試看…">Tokenization 決定了你的每一句話值多少錢。</textarea>
+    <div class="est-banner" data-est-banner>⚠ 目前為估算模式,非實際分詞(分詞器程式未能載入,以下數字僅為估計)</div>
+    <div class="tok-stats">
+      <div class="stat"><span class="v" data-tok-count>–</span><span class="k">token 數</span></div>
+      <div class="stat"><span class="v" data-char-count>–</span><span class="k">字元數</span></div>
+      <div class="stat"><span class="v" data-ratio>–</span><span class="k">字元/每 token</span></div>
+      <span class="mode-chip loading" data-mode-chip>分詞器載入中…</span>
+    </div>
+    <div class="tok-out" data-tok-out aria-live="polite"></div>
+    <p class="tool-note">本工具使用 OpenAI 開源分詞器(<code>o200k_base</code>);Claude 與 Gemini 的分詞器不同,實際 token 數會有出入。同一個 token 編號永遠是同一個色系;滑鼠移到方塊上可看 token 編號。</p>
+  </div>
+
+  <h3 id="t82">8-2 中英同義句 token 對照</h3>
+  <div class="card" data-cmp-widget></div>
+
+  <h3 id="t83">8-3 費用試算機</h3>
+  <div class="card calc" id="calcRoot">
+    <div>
+      <span style="font-weight:700;font-size:14px;color:var(--muted)">先挑一個情境,或自己填數字:</span>
+      <div class="presets" style="margin-top:8px">
+        <button class="btn" type="button" data-preset="300,800,一題數學問答:用旗艦模型也常常不到一元台幣——單次問答其實很便宜。">一題數學問答(輸入 300 / 輸出 800)</button>
+        <button class="btn" type="button" data-preset="30000,1500,摘要長報告:錢大多花在「讀」——長文件工作的成本重心在輸入端。">摘要一份 2 萬字報告(輸入 30,000 / 輸出 1,500)</button>
+        <button class="btn" type="button" data-preset="60000,12000,聊一整晚:對話歷史會一再重複計費,聊越久、每一句越貴——這就是快取存在的理由。">跟 AI 聊一整晚(輸入 60,000 / 輸出 12,000)</button>
+      </div>
+      <p class="preset-note" id="presetNote"></p>
+    </div>
+
+    <div class="fieldrow">
+      <label class="f">模型
+        <select id="calcModel"></select>
+      </label>
+      <label class="f">預設匯率(1 USD = ? TWD)
+        <input type="number" id="calcRate" value="31" min="0" step="0.1">
+        <span class="tiny">匯率僅供換算示意,請自行更新。</span>
+      </label>
+    </div>
+
+    <div class="modechoice" role="radiogroup" aria-label="輸入方式">
+      <label><input type="radio" name="calcmode" value="tokens" checked> 直接填 token 數</label>
+      <label><input type="radio" name="calcmode" value="words"> 用字數/單字數換算(估算)</label>
+    </div>
+
+    <div class="fieldrow" id="modeTokens">
+      <label class="f">輸入 token 數
+        <input type="number" id="calcIn" value="300" min="0" step="1">
+      </label>
+      <label class="f">輸出 token 數
+        <input type="number" id="calcOut" value="800" min="0" step="1">
+      </label>
+    </div>
+
+    <div class="fieldrow" id="modeWords" hidden>
+      <label class="f">輸入:中文字數(估算:×1.4)
+        <input type="number" id="calcZh" value="500" min="0" step="1">
+      </label>
+      <label class="f">輸入:英文單字數(官方經驗法則:÷0.75)
+        <input type="number" id="calcEn" value="0" min="0" step="1">
+      </label>
+      <label class="f">輸出 token 數(仍以 token 填寫)
+        <input type="number" id="calcOut2" value="800" min="0" step="1">
+      </label>
+      <p class="tiny" style="align-self:end">此模式的輸入 token 數為<strong>估算</strong>:中文字數 × 1.4 + 英文單字數 ÷ 0.75。</p>
+    </div>
+
+    <div class="toggles">
+      <label><input type="checkbox" id="calcBatch"> Batch 批次(全部 5 折)</label>
+      <label><input type="checkbox" id="calcCache"> 快取命中(輸入以 1 折計)</label>
+    </div>
+
+    <p class="calc-alert" id="calcAlert"></p>
+
+    <div class="calc-result" aria-live="polite">
+      <div class="tiny" style="color:#aab4d0">單次費用</div>
+      <div class="usd" id="calcUsd">$0.0000</div>
+      <div class="twd" id="calcTwd">≈ NT$0.00</div>
+      <div class="brk" id="calcBrk"></div>
+      <div class="scalebtns">
+        <button class="btn" type="button" data-scale="100">×100 次</button>
+        <button class="btn" type="button" data-scale="10000">×10,000 次</button>
+      </div>
+      <div class="scaleout" id="scaleOut"></div>
+    </div>
+    <p class="tiny">試算依第 7 章表列價格;思考 token 未列入(它以輸出價計費,實際帳單可能更高)。GPT-5.4 mini 輸出價本次未查證、Gemini 3.5 Pro 價格未公布,故不列入試算。資料時間:2026 年 7 月,請以官方定價頁為準。</p>
+  </div>
+</section>
+
+<!-- ============ 第 9 章 ============ -->
+<section class="ch" id="c9">
+  <div class="chkicker"><span class="no">第 9 章</span><span class="lab">QUIZ</span></div>
+  <h2>快問快答:檢查你有沒有真的懂</h2>
+  <p>共 10 題單選。答錯沒關係,每題都有解說——答錯的那題才是你賺到的那題。</p>
+  <div id="quizArea"></div>
+  <p id="quizscore" aria-live="polite">目前得分:0 / 0</p>
+</section>
+
+<!-- ============ 第 10 章 ============ -->
+<section class="ch" id="c10">
+  <div class="chkicker"><span class="no">第 10 章</span><span class="lab">GLOSSARY</span></div>
+  <h2>詞彙表 + 資料來源</h2>
+
+  <dl class="glossary">
+    <div class="gi"><dt>token<span class="en">token</span></dt><dd>AI 讀寫文字的最小單位;由統計決定的「常見碎片」,介於字與詞之間。</dd></div>
+    <div class="gi"><dt>分詞器<span class="en">tokenizer</span></dt><dd>把文字切成 token(並轉成編號)的程式;各家不同,同句話切出的數量也不同。</dd></div>
+    <div class="gi"><dt>位元組對編碼<span class="en">BPE, Byte Pair Encoding</span></dt><dd>建詞彙表的演算法:反覆把「最常相鄰出現」的組合合併成新詞條。</dd></div>
+    <div class="gi"><dt>詞彙表<span class="en">vocabulary</span></dt><dd>分詞器認得的所有 token 清單,現代約 10 萬~20 萬條,每條有固定編號。</dd></div>
+    <div class="gi"><dt>上下文窗口<span class="en">context window</span></dt><dd>一次請求中,輸入+輸出合計能容納的 token 上限;模型的「工作記憶桌面」。</dd></div>
+    <div class="gi"><dt>輸入/輸出 token<span class="en">input / output tokens</span></dt><dd>你送給模型的算輸入,模型生成的算輸出;兩者分開計價,輸出貴 4~6 倍。</dd></div>
+    <div class="gi"><dt>推理/思考 token<span class="en">reasoning tokens</span></dt><dd>推理模型回答前在內部「打草稿」用掉的 token;你看不到,但以輸出價計費。</dd></div>
+    <div class="gi"><dt>提示快取<span class="en">prompt caching</span></dt><dd>把重複出現的提示開頭暫存起來,再次讀取時輸入價約打 1 折。</dd></div>
+    <div class="gi"><dt>批次處理<span class="en">batch</span></dt><dd>不趕時間的請求集中處理,三家都打 5 折。</dd></div>
+    <div class="gi"><dt>MTok<span class="en">million tokens</span></dt><dd>「每 100 萬 token」,API 報價的標準單位,例如 $5/MTok。</dd></div>
+  </dl>
+
+  <h3>資料來源</h3>
+  <ul class="nice">
+    <li>OpenAI 官方定價頁:<a href="https://openai.com/api/pricing" rel="noopener" target="_blank">openai.com/api/pricing</a>(2026-07-12 查證)</li>
+    <li>Anthropic 官方定價頁:<a href="https://claude.com/pricing" rel="noopener" target="_blank">claude.com/pricing</a>(2026-07-12 查證)</li>
+    <li>Google 官方定價頁:<a href="https://ai.google.dev/gemini-api/docs/pricing" rel="noopener" target="_blank">ai.google.dev/gemini-api/docs/pricing</a>(2026-07-12 查證)</li>
+  </ul>
+  <div class="notice">免責聲明:本站為教學用途,價格與規格以 2026-07-12 查證的官方資料為準,之後隨時可能調整;任何採購或開發決策,請以各官方定價頁的即時資訊為準。本站分詞實測採 OpenAI 開源 o200k_base 編碼,其他公司的分詞結果會有出入。</div>
+</section>
+
+</main>
+
+<footer>
+  <div class="fin">
+    <p><strong>Token:AI 的計費單位與思考單位</strong> — 給高中生的 LLM token 互動圖解。</p>
+    <p>價格資料查證日 2026-07-12;價格隨時可能調整,請以官方定價頁為準:
+      <a href="https://openai.com/api/pricing" rel="noopener" target="_blank">openai.com/api/pricing</a>、
+      <a href="https://claude.com/pricing" rel="noopener" target="_blank">claude.com/pricing</a>、
+      <a href="https://ai.google.dev/gemini-api/docs/pricing" rel="noopener" target="_blank">ai.google.dev/gemini-api/docs/pricing</a>。
+    本站內容僅供教學參考,不構成任何採購建議。</p>
+  </div>
+</footer>
+
+<script>
+'use strict';
+/* ===================================================================
+   共用工具
+=================================================================== */
+const $=(s,el=document)=>el.querySelector(s);
+const $$=(s,el=document)=>Array.from(el.querySelectorAll(s));
+function debounce(fn,ms=200){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+const nf=new Intl.NumberFormat('zh-Hant-TW');
+
+/* ===================================================================
+   分詞器載入:UMD(unpkg)→ ESM(esm.sh)→ 估算模式
+=================================================================== */
+const Tok={mode:'loading',api:null};
+
+function loadScript(src,globalName,timeoutMs){
+  return new Promise(resolve=>{
+    const s=document.createElement('script');
+    const timer=setTimeout(()=>{s.remove();resolve(null);},timeoutMs);
+    s.src=src;s.async=true;
+    s.onload=()=>{clearTimeout(timer);resolve(window[globalName]||null);};
+    s.onerror=()=>{clearTimeout(timer);s.remove();resolve(null);};
+    document.head.appendChild(s);
+  });
+}
+
+async function initTokenizer(){
+  let api=await loadScript('https://unpkg.com/gpt-tokenizer/dist/o200k_base.js','GPTTokenizer_o200k_base',12000);
+  if(!api||typeof api.encode!=='function'){
+    try{
+      const m=await Promise.race([
+        import('https://esm.sh/gpt-tokenizer/encoding/o200k_base'),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),12000))
+      ]);
+      if(m&&typeof m.encode==='function')api=m;
+    }catch(e){api=null;}
+  }
+  if(api&&typeof api.encode==='function'&&typeof api.decode==='function'){
+    Tok.mode='real';Tok.api=api;
+  }else{
+    Tok.mode='estimate';
+  }
+  document.dispatchEvent(new CustomEvent('tok-ready'));
+}
+
+const CJK_RE=/[㐀-䶿一-鿿豈-﫿぀-ヿ가-힯]/;
+function estimateTokens(text){
+  if(!text)return 0;
+  let cjk=0,other=0;
+  for(const ch of text){ if(CJK_RE.test(ch))cjk++; else other++; }
+  return Math.max(1,Math.round(cjk*1.4+other/4));
+}
+function countTokens(text){
+  if(!text)return 0;
+  if(Tok.mode==='real'){try{return Tok.api.encode(text).length;}catch(e){return estimateTokens(text);}}
+  return estimateTokens(text);
+}
+
+/* token 方塊渲染 */
+const VIS=s=>s.replace(/ /g,'␣').replace(/\n/g,'⏎').replace(/\t/g,'⇥');
+function renderTokens(text,outEl){
+  outEl.innerHTML='';
+  if(!text){outEl.innerHTML='<span class="tiny">(輸入文字後,這裡會出現彩色 token 方塊)</span>';return 0;}
+  if(Tok.mode!=='real'){
+    outEl.innerHTML='<span class="tiny">估算模式下無法顯示實際切塊,僅提供 token 數估計。</span>';
+    return estimateTokens(text);
+  }
+  let ids;
+  try{ids=Tok.api.encode(text);}catch(e){outEl.textContent='(此段文字無法編碼)';return estimateTokens(text);}
+  const frag=document.createDocumentFragment();
+  const MAX=600;
+  ids.slice(0,MAX).forEach(id=>{
+    let piece='';
+    try{piece=Tok.api.decode([id]);}catch(e){piece='�';}
+    const span=document.createElement('span');
+    span.className='tk c'+(id%8);
+    const partial=!piece||piece.includes('�');
+    span.textContent=partial?'▯':VIS(piece);
+    span.title=partial?('token id: '+id+'(位元組片段:這個 token 只是一個字的一部分,單獨無法顯示——正是第 3 章說的「罕用字被拆開」)'):('token id: '+id);
+    frag.appendChild(span);
+  });
+  if(ids.length>MAX){
+    const more=document.createElement('span');
+    more.className='tiny';more.textContent=' …(僅顯示前 '+MAX+' 個 token,總數見上方)';
+    frag.appendChild(more);
+  }
+  outEl.appendChild(frag);
+  return ids.length;
+}
+
+/* 分詞器元件(Hero 與 8-1 共用) */
+function setupTokWidget(root){
+  const input=$('[data-tok-input]',root),out=$('[data-tok-out]',root);
+  const cnt=$('[data-tok-count]',root),chr=$('[data-char-count]',root);
+  const ratio=$('[data-ratio]',root),chip=$('[data-mode-chip]',root);
+  function refresh(){
+    const text=input.value;
+    const chars=[...text].length;
+    const n=renderTokens(text,out);
+    cnt.textContent=nf.format(n);
+    chr.textContent=nf.format(chars);
+    if(ratio)ratio.textContent=n?(chars/n).toFixed(2):'–';
+    if(Tok.mode==='real'){
+      chip.textContent='o200k 實測';chip.className='mode-chip real';
+      root.classList.remove('estimating');
+    }else if(Tok.mode==='estimate'){
+      chip.textContent='⚠ 估算模式';chip.className='mode-chip';
+      chip.style.background='var(--warn-bg)';chip.style.color='var(--warn-ink)';
+      root.classList.add('estimating');
+    }
+  }
+  input.addEventListener('input',debounce(refresh,200));
+  document.addEventListener('tok-ready',refresh);
+  refresh();
+}
+$$('[data-tok-widget]').forEach(setupTokWidget);
+
+/* ===================================================================
+   第 2 章:BPE 逐步合併示意
+=================================================================== */
+const BPE_STEPS=[
+  {words:[['h','u','g'],['h','u','g','s'],['h','u','g','g','i','n','g']],merged:null,
+   cap:'<b>第 0 步:</b>先把每個單字拆成最小單位(字母/位元組)。現在切一句話要用很多 token,很浪費。'},
+  {words:[['h','ug'],['h','ug','s'],['h','ug','g','i','n','g']],merged:'ug',
+   cap:'<b>第 1 步:</b>統計發現「u+g」相鄰出現最多次(3 次)→ 合併成新詞條 <b>ug</b>,登記進詞彙表。'},
+  {words:[['hug'],['hug','s'],['hug','g','i','n','g']],merged:'hug',
+   cap:'<b>第 2 步:</b>換「h+ug」最常見(3 次)→ 合併成 <b>hug</b>。詞彙表又多一條。'},
+  {words:[['hug'],['hug','s'],['hug','g','i','n','g']],merged:null,
+   cap:'<b>完成:</b>真實的分詞器把這個動作重複幾十萬次,建出 10 萬~20 萬條的詞彙表——常見的組合變成大塊 token,罕見的內容退回小碎片。'}
+];
+let bpeIdx=0;
+const bpeColors=['c0','c2','c1','c4','c3','c6','c5','c7'];
+function bpeRender(){
+  const st=BPE_STEPS[bpeIdx];
+  const area=$('#bpeArea');area.innerHTML='';
+  st.words.forEach(w=>{
+    const div=document.createElement('span');div.className='bpe-word bpe-line';
+    w.forEach((p,i)=>{
+      const t=document.createElement('span');
+      t.className='tk '+bpeColors[(p.length+i)%8]+(st.merged&&p===st.merged?' merged':'');
+      if(st.merged&&p===st.merged)t.style.outline='2px solid var(--t4-ink)';
+      t.textContent=p;div.appendChild(t);
+    });
+    area.appendChild(div);
+  });
+  $('#bpeCap').innerHTML=st.cap;
+  $('#bpePrev').disabled=bpeIdx===0;
+  $('#bpeNext').disabled=bpeIdx===BPE_STEPS.length-1;
+}
+$('#bpeNext').addEventListener('click',()=>{if(bpeIdx<BPE_STEPS.length-1){bpeIdx++;bpeRender();}});
+$('#bpePrev').addEventListener('click',()=>{if(bpeIdx>0){bpeIdx--;bpeRender();}});
+$('#bpeReset').addEventListener('click',()=>{bpeIdx=0;bpeRender();});
+bpeRender();
+
+/* ===================================================================
+   中英同義句對照(第 3 章與 8-2 共用)
+=================================================================== */
+const CMP_PAIRS=[
+  {zh:'今天天氣真好,我們去公園散步吧。',en:"The weather is really nice today. Let's take a walk in the park."},
+  {zh:'人工智慧正在改變世界。',en:'Artificial intelligence is changing the world.'},
+  {zh:'請把這份報告翻譯成英文。',en:'Please translate this report into English.'},
+  {zh:'我每天早上七點起床上學。',en:'I get up at seven every morning to go to school.'},
+  {zh:'學習新知識讓人感到快樂。',en:'Learning new things makes people happy.'}
+];
+function setupCmpWidget(root,idx){
+  root.innerHTML=`
+    <p class="tiny" style="margin-bottom:10px">點一組意思相同的中英句子,實測兩邊各要幾個 token(空格也算字元)。</p>
+    <div class="cmp-pairs" role="group" aria-label="內建句組">${CMP_PAIRS.map((p,i)=>`<button class="btn" type="button" data-pair="${i}" aria-pressed="${i===0?'true':'false'}">句組 ${i+1}</button>`).join('')}</div>
+    <div class="cmp-row zh">
+      <div class="lab"><span class="lang">中</span><span data-zh-text></span></div>
+      <div class="bar-outer"><div class="bar" data-zh-bar style="width:0%">0</div></div>
+      <div class="cmp-meta" data-zh-meta></div>
+    </div>
+    <div class="cmp-row en">
+      <div class="lab"><span class="lang">EN</span><span data-en-text></span></div>
+      <div class="bar-outer"><div class="bar" data-en-bar style="width:0%">0</div></div>
+      <div class="cmp-meta" data-en-meta></div>
+    </div>
+    <p class="cmp-verdict" data-verdict></p>
+    <div class="cmp-custom">
+      <strong style="font-size:14.5px">自己出題:輸入一組意思相同的中英句子</strong>
+      <input type="text" data-cus-zh placeholder="中文句子…" aria-label="自訂中文句子(對照組 ${idx+1})">
+      <input type="text" data-cus-en placeholder="English sentence…" aria-label="自訂英文句子(對照組 ${idx+1})">
+    </div>
+    <p class="tool-note">token 數為 o200k 實測(分詞器載入失敗時自動改為估算並標示);Claude 與 Gemini 的分詞器不同,結果會有出入。</p>`;
+  const zhT=$('[data-zh-text]',root),enT=$('[data-en-text]',root);
+  const zhB=$('[data-zh-bar]',root),enB=$('[data-en-bar]',root);
+  const zhM=$('[data-zh-meta]',root),enM=$('[data-en-meta]',root);
+  const verdict=$('[data-verdict]',root);
+  let cur={...CMP_PAIRS[0]};
+  function show(){
+    const zt=countTokens(cur.zh),et=countTokens(cur.en);
+    const zc=[...cur.zh].length,ec=[...cur.en].length;
+    const max=Math.max(zt,et,1);
+    zhT.textContent=cur.zh;enT.textContent=cur.en;
+    zhB.style.width=(zt/max*100)+'%';zhB.textContent=zt;
+    enB.style.width=(et/max*100)+'%';enB.textContent=et;
+    const tag=Tok.mode==='real'?'o200k 實測':'估算';
+    zhM.textContent=`字元數 ${zc} → token 數 ${zt}(${tag})`;
+    enM.textContent=`字元數 ${ec} → token 數 ${et}(${tag})`;
+    let v;
+    if(zt<et)v=`這一組:中文比較省(${zt} vs ${et} tokens),雖然英文「字元」比中文多 ${ec-zc>0?ec-zc:0} 個。`;
+    else if(zt>et)v=`這一組:英文比較省(${et} vs ${zt} tokens)——別忘了英文字元其實比較多!`;
+    else v=`這一組:平手(都是 ${zt} tokens)。`;
+    verdict.textContent=v+'(結論依句子與分詞器而異,換一組再試試)';
+  }
+  $$('.cmp-pairs button',root).forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      $$('.cmp-pairs button',root).forEach(b=>b.setAttribute('aria-pressed','false'));
+      btn.setAttribute('aria-pressed','true');
+      cur={...CMP_PAIRS[+btn.dataset.pair]};show();
+    });
+  });
+  const cusZh=$('[data-cus-zh]',root),cusEn=$('[data-cus-en]',root);
+  const onCustom=debounce(()=>{
+    if(cusZh.value.trim()||cusEn.value.trim()){
+      cur={zh:cusZh.value||'(未填中文)',en:cusEn.value||'(not filled)'};
+      $$('.cmp-pairs button',root).forEach(b=>b.setAttribute('aria-pressed','false'));
+      show();
+    }
+  },200);
+  cusZh.addEventListener('input',onCustom);
+  cusEn.addEventListener('input',onCustom);
+  document.addEventListener('tok-ready',show);
+  show();
+}
+$$('[data-cmp-widget]').forEach(setupCmpWidget);
+
+/* ===================================================================
+   8-3 費用試算機(價格照第 7 章表列;單位 USD / MTok)
+=================================================================== */
+const MODELS=[
+  {g:'OpenAI',n:'GPT-5.5',i:5.00,o:30.00,long:{limit:270000,i:10.00,o:45.00,label:'GPT-5.5 輸入超過約 270K,已改用長文費率 $10 / $45。'}},
+  {g:'OpenAI',n:'GPT-5.5 Pro',i:30.00,o:180.00},
+  {g:'OpenAI',n:'GPT-5.4',i:2.50,o:15.00,long:{limit:270000,i:5.00,o:22.50,label:'GPT-5.4 輸入超過約 270K,已改用長文費率 $5 / $22.50。'}},
+  {g:'OpenAI',n:'GPT-5.4 nano',i:0.20,o:1.25},
+  {g:'OpenAI',n:'GPT-5.3-Codex',i:1.75,o:14.00},
+  {g:'OpenAI',n:'GPT-5.6 Sol(Preview)',i:5.00,o:30.00},
+  {g:'OpenAI',n:'GPT-5.6 Terra(Preview)',i:2.50,o:15.00},
+  {g:'OpenAI',n:'GPT-5.6 Luna(Preview)',i:1.00,o:6.00},
+  {g:'OpenAI',n:'GPT-4.1(前代)',i:2.00,o:8.00},
+  {g:'OpenAI',n:'GPT-4.1 mini(前代)',i:0.40,o:1.60},
+  {g:'OpenAI',n:'GPT-4.1 nano(前代)',i:0.10,o:0.40},
+  {g:'Anthropic',n:'Claude Fable 5',i:10.00,o:50.00},
+  {g:'Anthropic',n:'Claude Opus 4.8',i:5.00,o:25.00},
+  {g:'Anthropic',n:'Claude Sonnet 5(優惠價至 2026-08-31)',i:2.00,o:10.00},
+  {g:'Anthropic',n:'Claude Sonnet 4.6',i:3.00,o:15.00},
+  {g:'Anthropic',n:'Claude Haiku 4.5',i:1.00,o:5.00},
+  {g:'Anthropic',n:'Claude Opus 4.1(舊)',i:15.00,o:75.00},
+  {g:'Google',n:'Gemini 3.5 Flash',i:1.50,o:9.00},
+  {g:'Google',n:'Gemini 3.1 Pro',i:2.00,o:12.00,long:{limit:200000,i:4.00,o:18.00,label:'Gemini 3.1 Pro 輸入超過 200K,全程改用高費率 $4 / $18。'}},
+  {g:'Google',n:'Gemini 3 Flash',i:0.50,o:3.00},
+  {g:'Google',n:'Gemini 3.1 Flash-Lite',i:0.25,o:1.50},
+  {g:'Google',n:'Gemini 2.5 Pro(前代)',i:1.25,o:10.00,long:{limit:200000,i:2.50,o:15.00,label:'Gemini 2.5 Pro 輸入超過 200K,改用高費率 $2.50 / $15。'}},
+  {g:'Google',n:'Gemini 2.5 Flash(前代)',i:0.30,o:2.50},
+  {g:'Google',n:'Gemini 2.5 Flash-Lite(前代)',i:0.10,o:0.40}
+];
+(function initCalc(){
+  const sel=$('#calcModel');
+  let lastG='';
+  let og=null;
+  MODELS.forEach((m,i)=>{
+    if(m.g!==lastG){og=document.createElement('optgroup');og.label=m.g;sel.appendChild(og);lastG=m.g;}
+    const opt=document.createElement('option');
+    opt.value=i;opt.textContent=m.n;og.appendChild(opt);
+  });
+  const inEl=$('#calcIn'),outEl=$('#calcOut'),zhEl=$('#calcZh'),enEl=$('#calcEn'),out2El=$('#calcOut2');
+  const rateEl=$('#calcRate'),batchEl=$('#calcBatch'),cacheEl=$('#calcCache');
+  const alertEl=$('#calcAlert'),usdEl=$('#calcUsd'),twdEl=$('#calcTwd'),brkEl=$('#calcBrk'),scaleEl=$('#scaleOut');
+  let lastUsd=0;
+
+  function getMode(){return document.querySelector('input[name="calcmode"]:checked').value;}
+  function getTokens(){
+    if(getMode()==='tokens')return{inp:+inEl.value||0,out:+outEl.value||0,est:false};
+    const inp=Math.round((+zhEl.value||0)*1.4+(+enEl.value||0)/0.75);
+    return{inp,out:+out2El.value||0,est:true};
+  }
+  function compute(){
+    const m=MODELS[+sel.value||0];
+    const{inp,out,est}=getTokens();
+    let pi=m.i,po=m.o,notes=[];
+    if(m.long&&inp>m.long.limit){pi=m.long.i;po=m.long.o;notes.push(m.long.label);}
+    let inCost=inp/1e6*pi;
+    if(cacheEl.checked){inCost*=0.1;notes.push('快取命中:輸入以 1 折計(僅適用重複的提示前綴)。');}
+    let outCost=out/1e6*po;
+    let total=inCost+outCost;
+    if(batchEl.checked){total*=0.5;notes.push('Batch 批次:總價 5 折(需可接受延遲完成)。');}
+    alertEl.textContent=notes.join(' ');
+    alertEl.classList.toggle('show',notes.length>0);
+    lastUsd=total;
+    const rate=+rateEl.value||0;
+    usdEl.textContent='$'+total.toFixed(4);
+    twdEl.textContent='≈ NT$'+(total*rate).toFixed(total*rate<1?3:2)+(est?'(輸入 token 數為估算)':'');
+    brkEl.innerHTML=`模型 ${esc(m.n)}|輸入 ${nf.format(inp)} tok × $${pi}/MTok|輸出 ${nf.format(out)} tok × $${po}/MTok`+(batchEl.checked?'|Batch ×0.5':'')+(cacheEl.checked?'|快取輸入 ×0.1':'');
+    scaleEl.textContent='';
+  }
+  ['change','input'].forEach(ev=>{
+    [sel,inEl,outEl,zhEl,enEl,out2El,rateEl,batchEl,cacheEl].forEach(el=>el.addEventListener(ev,debounce(compute,200)));
+  });
+  $$('input[name="calcmode"]').forEach(r=>r.addEventListener('change',()=>{
+    $('#modeTokens').hidden=getMode()!=='tokens';
+    $('#modeWords').hidden=getMode()!=='words';
+    compute();
+  }));
+  $$('.scalebtns .btn').forEach(b=>b.addEventListener('click',()=>{
+    const k=+b.dataset.scale,rate=+rateEl.value||0,u=lastUsd*k;
+    scaleEl.textContent=`×${nf.format(k)} 次 = $${u.toFixed(2)} ≈ NT$${nf.format(Math.round(u*rate))}`;
+  }));
+  $$('.presets .btn').forEach(b=>b.addEventListener('click',()=>{
+    const[i,o,...note]=b.dataset.preset.split(',');
+    document.querySelector('input[name="calcmode"][value="tokens"]').checked=true;
+    $('#modeTokens').hidden=false;$('#modeWords').hidden=true;
+    inEl.value=i;outEl.value=o;
+    const pn=$('#presetNote');pn.textContent=note.join(',');pn.classList.add('show');
+    compute();
+  }));
+  compute();
+})();
+
+/* ===================================================================
+   價格表排序(依輸入價)
+=================================================================== */
+$$('.sortbtn').forEach(btn=>{
+  const tbl=document.getElementById(btn.dataset.sortFor);
+  const tbody=tbl.tBodies[0];
+  const original=Array.from(tbody.rows);
+  let sorted=false;
+  btn.addEventListener('click',()=>{
+    sorted=!sorted;
+    if(!sorted){original.forEach(r=>tbody.appendChild(r));btn.textContent='依輸入價排序';return;}
+    const rows=Array.from(tbody.rows);
+    rows.sort((a,b)=>{
+      const pa=parseFloat((a.cells[1].textContent.match(/\$([\d.]+)/)||[])[1]);
+      const pb=parseFloat((b.cells[1].textContent.match(/\$([\d.]+)/)||[])[1]);
+      if(isNaN(pa)&&isNaN(pb))return 0;
+      if(isNaN(pa))return 1;if(isNaN(pb))return -1;
+      return pa-pb;
+    });
+    rows.forEach(r=>tbody.appendChild(r));
+    btn.textContent='恢復原順序';
+  });
+});
+
+/* ===================================================================
+   第 9 章:快問快答
+=================================================================== */
+const QUIZ=[
+  {q:'為什麼「輸出 token」通常比「輸入 token」貴 4~6 倍?',
+   opts:['因為輸出的字比較漂亮','因為生成每個 token 都要把整個模型完整跑一輪,運算成本高','因為輸出要付版權費','其實一樣貴,只是行銷話術'],
+   ans:1,expl:'讀取輸入可以高度平行處理,但生成是「一個 token 接一個 token」逐塊算出來的,每一塊都要跑一整輪模型,所以貴。三家的輸出價都是輸入的 4~6 倍(2026-07 官方定價)。'},
+  {q:'推理模型在回答前內部「打草稿」用掉的思考 token(reasoning tokens),要付錢嗎?',
+   opts:['不用,看不到的不算錢','要,而且以「輸入價」計費','要,而且以「輸出價」計費','只有超過 1 萬個才收費'],
+   ans:2,expl:'思考 token 你看不到,但照樣按「輸出價」計費——一個 200 字的答案,背後可能燒了幾千個思考 token,帳單常常大部分花在草稿上。'},
+  {q:'「中文一個字必定是一個 token」這句話對嗎?',
+   opts:['對,一字一 token 是規定','錯,常用字通常 1 個,罕用字可能被拆成 2~3 個,且依分詞器而異','錯,中文一個字固定是 3 個 token','對,但只限繁體字'],
+   ans:1,expl:'UTF-8 裡一個中文字是 3 bytes;分詞器詞彙表收錄的常用字通常 1 token,沒收錄的罕用字會退回位元組層級被拆成 2~3 塊。平均約 1~1.5 token/字,依分詞器而異。'},
+  {q:'「上下文窗口(context window)」是什麼?',
+   opts:['模型每秒能生成的 token 數','一次請求中,輸入+輸出合計能容納的 token 上限','瀏覽器的視窗大小','模型訓練用的資料總量'],
+   ans:1,expl:'它是模型的「工作記憶桌面」:一次請求裡輸入+輸出加起來的 token 上限。因為注意力機制的運算量隨長度快速成長,窗口越大越貴越慢。'},
+  {q:'訂閱 ChatGPT Plus(US$20/月)等於買了 OpenAI 的 API 嗎?',
+   opts:['等於,同一個東西','不等於:訂閱是聊天產品的月費,API 是按 token 計費的開發者服務','等於,但 API 比較快','不等於,API 是免費的'],
+   ans:1,expl:'兩者是不同商品:Plus 是「月費吃到飽(有額度)」的聊天產品;API 才按 token 計費。名字常混用——ChatGPT 是產品名,API 模型叫 GPT-5.5。'},
+  {q:'「提示快取(prompt caching)」省錢的原理是?',
+   opts:['把答案先寫好','重複出現的提示開頭被暫存,再次「讀取」時輸入價約打 1 折','把 token 壓縮成一半','深夜時段自動降價'],
+   ans:1,expl:'很多請求開頭都一樣(如系統提示),服務商把這段暫存起來,下次讀取只收約原價 1 折。這也是「聊越久越貴」問題的主要解方。'},
+  {q:'同一句話丟給 OpenAI、Anthropic、Google,token 數為什麼不一樣?',
+   opts:['因為伺服器在不同國家','因為三家的分詞器與詞彙表各自不同','因為翻譯品質不同','其實一定一樣'],
+   ans:1,expl:'OpenAI 用 tiktoken(o200k_base)、Google 用 SentencePiece 系列、Anthropic 未公開——詞彙表不同,切法就不同,token 數自然不同,有效成本也不同。'},
+  {q:'Gemini 3.1 Pro 的「長上下文加價」門檻是多少?',
+   opts:['超過 2 萬 token','超過 20 萬 token(輸入 $2→$4、輸出 $12→$18)','超過 200 萬 token','沒有加價'],
+   ans:1,expl:'超過 200K(20 萬)token 後改高費率:輸入 2 倍、輸出 1.5 倍。OpenAI GPT-5.5/5.4 超過約 27 萬也有加價;Claude 現行 1M 窗口機種則全程同價。'},
+  {q:'BPE(Byte Pair Encoding)建詞彙表的核心動作是?',
+   opts:['把每個單字查字典','反覆把「最常相鄰出現」的組合合併成新詞條','把句子翻成英文再切','隨機切塊'],
+   ans:1,expl:'從位元組出發,統計最常相鄰出現的一對、合併、再統計、再合併……重複幾十萬次,建出約 10 萬~20 萬條的詞彙表。'},
+  {q:'依官方經驗法則,100 個 token 大約等於幾個英文單字?',
+   opts:['約 25 個','約 75 個','約 100 個','約 400 個'],
+   ans:1,expl:'官方經驗法則:1 token ≈ 4 個英文字元 ≈ 0.75 個英文單字,所以 100 tokens ≈ 75 個英文單字。注意這是英文的法則,中文另計。'}
+];
+(function initQuiz(){
+  const area=$('#quizArea');let answered=0,score=0;
+  QUIZ.forEach((item,qi)=>{
+    const div=document.createElement('div');div.className='quiz-q';
+    div.innerHTML=`<p class="qt"><span class="qno">Q${qi+1}</span>${esc(item.q)}</p>
+      <div class="quiz-opts">${item.opts.map((o,oi)=>`<button type="button" data-oi="${oi}">${'ABCD'[oi]}. ${esc(o)}</button>`).join('')}</div>
+      <p class="quiz-expl"></p>`;
+    const btns=$$('.quiz-opts button',div),expl=$('.quiz-expl',div);
+    btns.forEach(b=>b.addEventListener('click',()=>{
+      if(div.dataset.done)return;
+      div.dataset.done='1';answered++;
+      const pick=+b.dataset.oi;
+      btns.forEach(x=>{x.disabled=true;});
+      btns[item.ans].classList.add('correct');
+      if(pick===item.ans){score++;expl.innerHTML='✅ 答對了!'+esc(item.expl);}
+      else{b.classList.add('wrong');expl.innerHTML='❌ 不對喔。正解是 '+'ABCD'[item.ans]+'。'+esc(item.expl);}
+      expl.classList.add('show');
+      $('#quizscore').textContent=`目前得分:${score} / ${answered}`+(answered===QUIZ.length?`(全部作答完畢${score===QUIZ.length?',滿分!🎉':',答錯的回去翻對應章節吧'})`:'');
+    }));
+    area.appendChild(div);
+  });
+})();
+
+/* ===================================================================
+   進度列與目錄
+=================================================================== */
+(function(){
+  const bar=$('#progressbar');
+  const onScroll=()=>{
+    const h=document.documentElement;
+    const max=h.scrollHeight-h.clientHeight;
+    bar.style.width=(max>0?(h.scrollTop/max*100):0)+'%';
+  };
+  document.addEventListener('scroll',onScroll,{passive:true});
+  onScroll();
+  const toc=$('#tocbox');
+  $$('#tocbox .menu a').forEach(a=>a.addEventListener('click',()=>toc.removeAttribute('open')));
+  document.addEventListener('click',e=>{if(toc.open&&!toc.contains(e.target))toc.removeAttribute('open');});
+})();
+
+/* 啟動分詞器載入 */
+initTokenizer();
+</script>
+</body>
+</html>
