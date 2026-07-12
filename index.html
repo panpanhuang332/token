@@ -280,6 +280,8 @@ details.qa>summary::-webkit-details-marker{display:none}
 details.qa>summary::before{content:"Q";font-family:var(--mono);color:#fff;background:var(--t4-ink);border-radius:7px;padding:0 9px;font-size:14px;flex:none}
 details.qa[open]>summary{border-bottom:1px dashed var(--line);background:#fdf7fa}
 details.qa .qa-body{padding:14px 18px}
+details.qa.adv>summary::before{content:"進階";background:var(--t5-ink);font-size:12.5px;padding:1px 8px}
+details.qa.adv[open]>summary{background:#f6f3fe}
 
 footer{border-top:1px solid var(--line);margin-top:64px;padding:32px 16px 48px;background:#fff}
 footer .fin{max-width:880px;margin:0 auto;font-size:13.5px;color:var(--muted)}
@@ -314,6 +316,7 @@ footer a{word-break:break-all}
         <a href="#c3"><b>3</b>中文 vs 英文</a>
         <a href="#c4"><b>4</b>上下文窗口</a>
         <a href="#c5"><b>5</b>模型用 token 思考</a>
+        <a href="#adv"><b>5+</b>進階閱讀(選讀)</a>
         <a href="#c6"><b>6</b>Token 就是錢</a>
         <a href="#c7"><b>7</b>三大 LLM 價格總表</a>
         <a href="#c8"><b>8</b>互動工具區</a>
@@ -508,6 +511,45 @@ footer a{word-break:break-all}
     <span class="deftag">一句進階補充</span>
     <p>「預測下一個 token」聽起來簡單,但為了預測得準,模型必須在內部學會文法、常識、甚至推理——這就是大型語言模型(LLM)能力的來源。</p>
   </div>
+
+  <h3 id="adv">進階閱讀(選讀:想更深入的人再展開)</h3>
+  <p class="tiny">以下四題不影響主線,看不懂也完全不妨礙你理解 token;但如果你是「想知道為什麼」的那種人,這裡是入口。</p>
+
+  <details class="qa adv">
+    <summary>為什麼 attention 的運算量會隨長度「爆炸性」成長?</summary>
+    <div class="qa-body">
+      <p><strong>比喻:</strong>開學典禮要「全班每人跟每人握手」。30 人的班要握 <span class="num">30×29÷2 = 435</span> 次;人數變 2 倍(60 人),握手次數變成 <span class="num">1,770</span> 次——約 <strong>4 倍</strong>,不是 2 倍。</p>
+      <p><strong>白話定義:</strong>注意力機制(attention)裡,每個 token 都要回頭「看」前面所有 token 來決定自己的意思,這正是一場全員握手:文章長度變 n 倍,握手(運算)次數約變 <strong>n² 倍</strong>。</p>
+      <p><strong>例子:</strong>把輸入從 1 萬 token 加到 10 萬 token,長度 10 倍,attention 的運算量約 100 倍。<strong>進階補充:</strong>這就是上下文窗口有上限、超長輸入要加價(第 6 章第 5 點)的物理原因;工程師也發展了各種「少握幾次手」的近似技巧,才把窗口從幾千推到上百萬。</p>
+    </div>
+  </details>
+
+  <details class="qa adv">
+    <summary>KV cache 是什麼?跟 prompt caching 有什麼關係?</summary>
+    <div class="qa-body">
+      <p><strong>比喻:</strong>寫數學考卷時,你不會每一小題都把前面的中間結果重算一遍——你把它們寫在計算紙上,後面直接抄。</p>
+      <p><strong>白話定義:</strong>模型每生成一個新 token 都要「看」前面所有 token。<strong>KV cache</strong> 就是那張計算紙:把每個 token 算過的中間結果(稱為 Key 和 Value)暫存在顯示卡記憶體裡,生成下一個 token 時直接取用、不必重算。</p>
+      <p><strong>例子:</strong>沒有 KV cache,回答每多一個字就要把整段對話重算一次,長對話會慢到不能用。<strong>進階補充:</strong>第 6 章的提示快取(prompt caching)本質上就是把「常用開頭的計算紙」保存下來,跨請求重複使用——讀一張現成的計算紙比重算便宜,所以只收約 1 折;而 Google 另收「儲存費」,因為那張紙佔的記憶體也是真金白銀。</p>
+    </div>
+  </details>
+
+  <details class="qa adv">
+    <summary>為什麼各家不斷改版分詞器?</summary>
+    <div class="qa-body">
+      <p><strong>比喻:</strong>字典改版:收的詞條越多,查一句話要翻的次數就越少;但字典也越厚、越難編。</p>
+      <p><strong>白話定義:</strong>分詞器改版是在兩個目標之間拉扯——<strong>壓縮率</strong>(同樣文字切出越少 token,越省錢、窗口塞得越多)與<strong>多語言公平</strong>(多收非英語詞條,降低第 3 章說的「語言稅」)。詞彙表變大能同時改善兩者,代價是模型要處理的「候選字表」也變大。</p>
+      <p><strong>例子:</strong>OpenAI 從 cl100k(約 10 萬詞條)換到 o200k(約 20 萬詞條),許多語言的 token 數明顯下降;Anthropic 自 Opus 4.7 起換用新分詞器,同樣文字的 token 數可能比舊款多出最多約 35%(見第 6 章第 6 點)——改版方向不一定都是「變省」,也可能是為了其他能力取捨。<strong>進階補充:</strong>分詞器一改,「1 字幾 token」的舊經驗全部作廢,所以本站一直提醒你:實測,不要背數字。</p>
+    </div>
+  </details>
+
+  <details class="qa adv">
+    <summary>思辨:按 token 收費,公司有沒有誘因讓模型「話變多」?</summary>
+    <div class="qa-body">
+      <p><strong>比喻:</strong>按字計酬的作家,有沒有動機把小說灌水拉長?誘因確實存在——但讀者會退貨。</p>
+      <p><strong>白話定義:</strong>結構上的誘因是真的:輸出與思考 token 都按輸出價計費,「多想、多寫」直接增加營收,而思考 token 你還看不到。但制衡力量也是真的:<strong>市場競爭</strong>(同樣的答案更囉嗦=更貴=客戶換供應商)、<strong>使用者的控制權</strong>(API 可設定輸出上限、可指定回答簡潔、可關閉或限制思考長度)、<strong>公開比較的壓力</strong>(第三方持續評測各家「同樣任務花多少 token」)。</p>
+      <p><strong>例子:</strong>如果某家模型固定把 100 字能講完的事寫成 500 字,價格試算機一按、比較文一出,口碑很快反映。<strong>進階補充:</strong>這題沒有標準答案,它要訓練的是消費者意識——看得懂帳單、會用試算機、知道哪些成本是隱形的(思考 token、對話歷史),你就是不容易被多收錢的那種使用者。</p>
+    </div>
+  </details>
 </section>
 
 <!-- ============ 第 6 章 ============ -->
