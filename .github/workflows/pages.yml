@@ -1,6 +1,6 @@
 name: Deploy to GitHub Pages
 
-# 將 index.html 同步到 gh-pages 分支;GitHub Pages 由該分支提供服務。
+# 將 index.html 與 trade/ 同步到 gh-pages 分支;GitHub Pages 由該分支提供服務。
 on:
   push:
     branches:
@@ -8,6 +8,7 @@ on:
       - claude/llm-token-education-site-909mo9
     paths:
       - index.html
+      - 'trade/**'
   workflow_dispatch:
 
 permissions:
@@ -28,8 +29,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout --orphan deploy
           git rm -rf --quiet .
-          git checkout "${GITHUB_SHA}" -- index.html
+          git checkout "${GITHUB_SHA}" -- index.html trade
           touch .nojekyll
-          git add index.html .nojekyll
+          git add index.html trade .nojekyll
           git commit -m "Deploy ${GITHUB_SHA::7} to GitHub Pages"
           git push --force origin deploy:gh-pages
