@@ -7,7 +7,7 @@ comp=json.load(open(os.path.join(D,'compilation.json'),encoding='utf-8'))
 ov=json.load(open(os.path.join(D,'overrides.json'),encoding='utf-8'))
 ex=json.load(open(os.path.join(D,'explanations.json'),encoding='utf-8')) if os.path.exists(os.path.join(D,'explanations.json')) else {}
 bank={q['id']:q for q in json.load(open(os.path.join(ROOT,'data','itce-pack','question_bank.json'),encoding='utf-8'))['questions']}
-PUA={'':'①','':'②','':'③','':'④','':'⑤','':'⑥','':'⑦','':"'"}
+PUA={'\uf06a':'①','\uf06b':'②','\uf06c':'③','\uf06d':'④','\uf06e':'⑤','\uf06f':'⑥','\uf070':'⑦','\uf0a2':"'",'\uf0b2':'″','\uf0fe':'☑','\uf0a8':'☐','\uf0a3':'"'}
 def clean(t): 
     for k,v in PUA.items(): t=t.replace(k,v)
     return t
