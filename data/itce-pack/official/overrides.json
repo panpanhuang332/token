@@ -1,0 +1,13 @@
+{
+ "_note": "依 PDF 頁面影像人工校正之題目(雙欄排版或圈號字元導致自動解析錯誤)。",
+ "O2-059": {"q": "一般國際貿易以商業信用狀付款時，下列單據簽發或填送時間的先後順序，何者較適當？①出口報單 ②提單 ③開狀申請書 ④小提單 ⑤押匯申請書", "o": ["①②③④⑤", "③①②⑤④", "⑤②③①④", "③⑤①②④"], "a": 1},
+ "O3-035": {"q": "買方以信用狀付款時，下列約定何者對賣方較有保障？①指定開狀銀行的信評等級 ②規定信用狀的開發時間 ③指定開發可撤銷信用狀 ④信用狀勿經銀行通知", "o": ["①②", "①④", "②④", "②③"], "a": 0},
+ "O7-011": {"o": ["ICC(A)、(B)、(C)都排除兵險及罷工險", "ICC(A)有承保船舶之不適航", "ICC(B)有承保共同海損", "ICC(C)有承保爆炸及火災"], "a": 1},
+ "O7-015": {"q": "以海運運輸，貨主投保ICC(A)或全險(All Risks)時，因以下哪些危險導致貨物滅失或毀損，保險人不負賠償責任？①保險標的物正常損耗 ②載運船舶不適航 ③戰爭 ④在避難港卸貨 ⑤波浪捲落", "o": ["①②③④", "②③⑤", "①③④", "①②③"], "a": 3},
+ "O11-049": {"o": ["due", "subject", "available", "flexible"], "a": 1},
+ "O11-050": {"new": true, "chapter": 11, "chapterName": "基礎貿易英文", "sub": "", "num": 50, "page": 54, "q": "If the invoice is in order, we will expect to receive your remittance in full ______ without further delay.", "o": ["settlement", "capacity", "account", "debt"], "a": 0},
+ "O12-S3-06": {"o": ["March 19, 2019", "May 20, 2019", "August 30, 2019", "September 30, 2019"], "a": 3},
+ "O12-S3-07": {"new": true, "chapter": 12, "chapterName": "信用狀實例分析及單證填製", "sub": "實例3", "num": 7, "page": 66, "caseSet": 3, "q": "下列何者為所附包裝單空格(2)的正確記載內容？", "o": ["ABC INC. SABANCI CENTER 4 LEVENT 34330, ISTANBUL, TURKEY", "XYZ TRADING CO., LTD. NO.123, SEC.2, TUN-HWA SOUTH ROAD, TAIPEI, TAIWAN, R.O.C.", "TIRES AS PER PROFORMA INVOICE NO. AIC-PL1010709 DATED 20/03/2019", "AKBANK T.A.S."], "a": 0},
+ "O12-S3-09": {"o": ["XYZ TRADING CO., LTD. NO.123, SEC.2, TUN-HWA SOUTH ROAD, TAIPEI, TAIWAN, R.O.C.", "TO THE ORDER OF ABC INC. SABANCI CENTER 4 LEVENT 34330, ISTANBUL, TURKEY", "TO THE ORDER OF AKBANK T.A.S. CEVIZLI BRANCH", "TO THE ORDER"], "a": 3},
+ "O12-S3-10": {"new": true, "chapter": 12, "chapterName": "信用狀實例分析及單證填製", "sub": "實例3", "num": 10, "page": 67, "caseSet": 3, "q": "下列何者為所附提單空格(5)的正確記載內容？", "o": ["KEELUNG", "ISTANBUL", "GUANG ZHOU", "CHANG HWA"], "a": 1}
+}
