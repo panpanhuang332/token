@@ -160,6 +160,7 @@ footer{text-align:center;font-size:13px;color:var(--muted);padding:30px 16px;bor
 <script src="bank.js"></script>
 <script src="past_data.js"></script>
 <script src="case_text.js"></script>
+<script src="official_data.js"></script>
 <script>
 'use strict';
 /* ========== 工具 ========== */
@@ -187,11 +188,13 @@ function renderQuestion(q,idx,opts={}){
   const ctx=q.context?`<div class="ctx">${esc(q.context)}</div>`:'';
   const tbl=q.table&&q.table.headers?`<div class="qtable tablewrap"><table><tr>${q.table.headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>${(q.table.rows||[]).map(r=>`<tr>${(Array.isArray(r)?r:Object.values(r)).map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table></div>`:'';
   const hist=q.historical?'<span class="pill red" style="margin-left:6px">依當屆時事作答</span>':'';
-  const caseBtn=(q.exam&&q.number>=91&&window.PAST&&PAST.editions[q.exam]&&PAST.editions[q.exam].casePages.length)?`<div class="btnrow"><button type="button" class="btn small" data-case="${esc(q.exam)}">📎 查看第 ${esc(q.exam)} 屆單證附件(${PAST.editions[q.exam].casePages.length} 頁)</button></div>`:'';
+  const offCase=(q.official&&q.caseSet&&window.OFFICIAL&&OFFICIAL.caseSets[q.caseSet])?`<div class="btnrow"><button type="button" class="btn small" data-offcase="${q.caseSet}">📎 查看實例 ${q.caseSet} 的信用狀與單據(${OFFICIAL.caseSets[q.caseSet].pages.length} 頁)</button></div>`:'';
+  const caseBtn=offCase||((q.exam&&q.number>=91&&window.PAST&&PAST.editions[q.exam]&&PAST.editions[q.exam].casePages.length)?`<div class="btnrow"><button type="button" class="btn small" data-case="${esc(q.exam)}">📎 查看第 ${esc(q.exam)} 屆單證附件(${PAST.editions[q.exam].casePages.length} 頁)</button></div>`:'');
   div.innerHTML=`<div class="qt"><span class="qn">${q.number||idx+1}</span>${esc(q.q)}${opts.showMod?modName:''}${src}${hist}</div>${ctx}${tbl}${caseBtn}
     <div class="opts">${q.o.map((o,i)=>`<button type="button" data-i="${i}">${'ABCD'[i]}. ${esc(o)}</button>`).join('')}</div>
     <div class="expl"></div>`;
   const cb=$('[data-case]',div);if(cb)cb.addEventListener('click',()=>openCasePages(cb.dataset.case));
+  const ob=$('[data-offcase]',div);if(ob)ob.addEventListener('click',()=>openImages('官方彙編 實例 '+ob.dataset.offcase+' 附件(信用狀 / 匯票發票 / 提單)',OFFICIAL.caseSets[ob.dataset.offcase].pages));
   const btns=$$('.opts button',div),expl=$('.expl',div);
   btns.forEach(b=>b.addEventListener('click',()=>{
     const i=+b.dataset.i;
@@ -199,7 +202,7 @@ function renderQuestion(q,idx,opts={}){
     if(div.dataset.done)return;div.dataset.done='1';
     btns.forEach(x=>x.disabled=true);
     const ok=i===q.a;btns[q.a].classList.add('correct');if(!ok)b.classList.add('wrong');
-    expl.innerHTML=(ok?'✅ 答對了!':'❌ 不對,正解是 <b>'+'ABCD'[q.a]+'</b>。')+'<br>'+(q.e?esc(q.e):'<i>此題尚無詳解(匯入的考古題)。可到對應章節講義複習。</i>')+(q.steps?`<div class="steps">${esc(q.steps)}</div>`:'')+extraExpl(q);
+    expl.innerHTML=(ok?'✅ 答對了!':'❌ 不對,正解是 <b>'+'ABCD'[q.a]+'</b>。')+'<br>'+(q.e?esc(q.e).replace(/\n/g,'<br>'):'<i>此題尚無詳解(匯入的考古題)。可到對應章節講義複習。</i>')+(q.steps?`<div class="steps">${esc(q.steps)}</div>`:'')+extraExpl(q);
     expl.classList.add('show');
     if(q.id&&!opts.noRecord)recordAnswer(q,ok);
     if(opts.onAnswer)opts.onAnswer(q,ok);
@@ -207,6 +210,8 @@ function renderQuestion(q,idx,opts={}){
   return div;
 }
 function extraExpl(q){let h='';if(q.note)h+=`<div class="note">📝 校核註記:${esc(q.note)}</div>`;if(q.historical)h+=`<div class="note">🕰 本題依「當屆」的時事與規定作答,現行規則可能已不同。</div>`;
+  if(q.official){const tag=q.eSrc==='own'?'解析為本站編寫':q.eSrc&&q.eSrc.startsWith('same:')?`與第 ${q.eSrc.slice(5).split('-')[0]} 屆第 ${+q.eSrc.slice(5).split('-')[1]} 題相同,沿用該題解析`:q.eSrc==='official'?'附原卷公布之解答算式':'';
+    h+=`<div class="srcpg">來源:官方試題彙編 第${['','','二','三','四','五','六','七','八','九','十','十一','十二'][q.chapter]}章「${esc(q.chapterName)}」${q.sub?'／'+esc(q.sub):''} 第 ${q.num} 題(PDF 第 ${q.page} 頁)${tag?' · '+tag:''} · 非主辦單位官方解析</div>`;}
   if(q.exam){h+=`<div class="srcpg">來源:第 ${esc(q.exam)} 屆第 ${q.number} 題${q.page?`(原卷 PDF 第 ${esc(q.page)} 頁)`:''} · 解析為本站編寫,非主辦單位官方解析${q.topic&&pastTopic(q.topic)?` · 題型:<a href="#/lesson/${esc(q.topic)}">${esc(pastTopic(q.topic).title||pastTopic(q.topic).name||q.topic)}</a>`:''}</div>`;}return h;}
 function pastTopic(id){return window.PAST&&PAST.curriculum.find(t=>String(t.id)===String(id));}
 function openCasePages(ex){const ed=window.PAST&&PAST.editions[ex];if(!ed)return;const texts=(window.CASE_TEXT&&CASE_TEXT[ex])||[];const names=['信用狀','匯票與商業發票','海運提單'];
@@ -218,6 +223,12 @@ function openCasePages(ex){const ed=window.PAST&&PAST.editions[ex];if(!ed)return
   lb.addEventListener('click',e=>{if(e.target===lb||e.target.hasAttribute('data-close'))lb.remove();});document.body.appendChild(lb);}
 /* 套件題目 → 網站題目格式(id 加前綴避免衝突) */
 const PASTQ=(window.PAST?PAST.questions:[]).map(q=>({...q,id:'P-'+q.id,src:'第 '+q.exam+' 屆'}));
+const OFFQ=(window.OFFICIAL?OFFICIAL.questions:[]).map(q=>({...q,id:'OF-'+q.id,src:'官方彙編',official:true}));
+function offChapter(ch){return OFFQ.filter(q=>q.chapter===ch);}
+const OFF_CH_NAMES={2:'國際貿易基本概念及流程',3:'國際貿易契約條件',4:'報價、接受與契約訂定',5:'國際貿易付款與融資',6:'國際運輸',7:'國際貿易風險管理',8:'進出口結匯',9:'貿易索賠與糾紛處理',10:'價格計算',11:'基礎貿易英文',12:'信用狀實例分析及單證填製'};
+function openImages(title,pages){const lb=document.createElement('div');lb.className='lightbox';
+  lb.innerHTML=`<div class="lbin"><div class="lbbar"><span>${esc(title)}</span><button class="btn small" style="margin-left:auto;background:#fff" data-close>關閉 ✕</button></div>${pages.map((p,i)=>`<p class="pgtitle">第 ${i+1} 頁</p><img src="${esc(p)}" alt="${esc(title)} 第 ${i+1} 頁">`).join('')}</div>`;
+  lb.addEventListener('click',e=>{if(e.target===lb||e.target.hasAttribute('data-close'))lb.remove();});document.body.appendChild(lb);}
 function revealQuestion(div,q){const btns=$$('.opts button',div),expl=$('.expl',div);const p=div.dataset.picked;btns.forEach(x=>x.disabled=true);btns[q.a].classList.add('correct');
   const ok=p!==undefined&&+p===q.a;if(p!==undefined&&!ok)btns[+p].classList.add('wrong');
   expl.innerHTML=(p===undefined?'⚠ 未作答。':ok?'✅ 答對。':'❌ 答錯,')+'正解 <b>'+'ABCD'[q.a]+'</b>。<br>'+(q.e?esc(q.e):'<i>此題尚無詳解。</i>')+extraExpl(q);expl.classList.add('show');
@@ -243,7 +254,7 @@ function viewHome(){
   <div class="bar"><span style="width:${Math.round(answered/tot*100)}%"></span></div>
   <h3>12 大命題方向(點進去看講義或練習)</h3>
   <div class="grid two" id="modgrid"></div>
-  ${window.PAST?`<div class="notice"><b>歷屆考古題已載入:</b>第 ${Object.keys(PAST.editions).sort().join('、')} 屆共 ${PASTQ.length} 題,含本站解析、題型教材與單證附件。<a href="#/past">前往考古題</a></div>`:`<div class="notice"><b>關於考古題:</b>官方免費提供第 1~20 屆試題彙編(僅供教學練習、禁止商業販售)。本站無法內建原題,但你可以在「考古題」頁把試題文字貼上匯入,系統會自動變成可作答、可計分的題目。</div>`}`;
+  ${window.PAST?`<div class="notice"><b>歷屆考古題已載入:</b>第 ${Object.keys(PAST.editions).sort().join('、')} 屆共 ${PASTQ.length} 題,含本站解析、題型教材與單證附件${window.OFFICIAL?';另有<b>官方試題彙編 '+OFFQ.filter(q=>q.chapter<12).length+' 題 + 5 組信用狀實例</b>(正式考題有一部分從中抽出)':''}。<a href="#/past">前往考古題</a></div>`:`<div class="notice"><b>關於考古題:</b>官方免費提供第 1~20 屆試題彙編(僅供教學練習、禁止商業販售)。本站無法內建原題,但你可以在「考古題」頁把試題文字貼上匯入,系統會自動變成可作答、可計分的題目。</div>`}`;
   const g=$('#modgrid');
   BANK.modules.forEach(m=>{const s=modStats(m.id);const b=document.createElement('button');b.className='modcard';
     b.innerHTML=`<span class="ic">${m.icon}</span><span><span class="t">${esc(m.name)}</span><br><span class="s">${esc(m.short)}</span><br><span class="st">${m.questions.length} 題 · 已做 ${s.done}${s.acc!==null?' · 正確率 '+s.acc+'%':''}</span></span>`;
@@ -381,7 +392,7 @@ function viewExam(ex){
   const past=store.get('past',[]);
   app.innerHTML=`<h2>模擬考</h2><p class="tiny">依正式考試「單選 100 題、4 選 1」設計。題目從 12 章按比例隨機抽取;也可以加入你匯入的考古題。交卷後顯示總分、各章正確率與逐題詳解。</p>
   <div class="card"><label class="f">題數</label><select id="en"><option value="25">25 題(約 25 分鐘)</option><option value="50">50 題(約 50 分鐘)</option><option value="100">100 題(100 分鐘,全真)</option></select>
-  <label class="f">題目來源</label><select id="esrc"><option value="bank">仿真題庫</option>${window.PAST?'<option value="pack">歷屆考古題(五屆隨機混抽)</option><option value="mixpack">仿真題庫 + 歷屆考古題</option>':''}${past.length?'<option value="mix">仿真題庫 + 匯入的考古題</option><option value="past">只用匯入的考古題</option>':''}</select>
+  <label class="f">題目來源</label><select id="esrc"><option value="bank">仿真題庫</option>${window.PAST?'<option value="pack">歷屆考古題(五屆隨機混抽)</option><option value="mixpack">仿真題庫 + 歷屆考古題</option>':''}${window.OFFICIAL?'<option value="official">官方彙編 350 題(隨機,不含第十二章實例)</option><option value="all">歷屆考古題 + 官方彙編(隨機)</option>':''}${past.length?'<option value="mix">仿真題庫 + 匯入的考古題</option><option value="past">只用匯入的考古題</option>':''}</select>
   <label class="f">計時</label><select id="et"><option value="1">每題 1 分鐘(比照正式考試)</option><option value="0">不計時</option></select>
   <div class="btnrow"><button class="btn coral" id="start">開始考試</button></div></div>
   ${(store.get('examlog',[])).length?'<h3>歷次成績</h3><div class="tablewrap"><table><tr><th>日期</th><th>題數</th><th>答對</th><th>得分</th></tr>'+store.get('examlog',[]).slice(-10).reverse().map(l=>`<tr><td>${esc(l.d)}</td><td>${l.n}</td><td>${l.c}</td><td class="mono">${l.s}</td></tr>`).join('')+'</table></div>':''}`;
@@ -391,6 +402,8 @@ function viewExam(ex){
     if(src==='bank'||src==='mix'){const per=n/BANK.modules.length;BANK.modules.forEach(m=>{pool.push(...shuffle(m.questions).slice(0,Math.ceil(per)));});pool=shuffle(pool).slice(0,n);}
     if(src==='past'||src==='mix'){const pq=[];past.forEach(p=>p.q.forEach((q,i)=>pq.push({...q,id:'past-'+p.name+'-'+i,src:p.name})));const take=src==='past'?n:Math.floor(n/2);const sel=shuffle(pq).slice(0,take);pool=src==='past'?sel:shuffle(pool.slice(0,n-sel.length).concat(sel));}
     if(src==='pack'){pool=shuffle(PASTQ).slice(0,n);}
+    if(src==='official'){pool=shuffle(OFFQ.filter(q=>q.chapter<12)).slice(0,n);}
+    if(src==='all'){pool=shuffle(PASTQ.concat(OFFQ.filter(q=>q.chapter<12))).slice(0,n);}
     if(src==='mixpack'){const half=Math.floor(n/2);pool=shuffle(pool.slice(0,n-half).concat(shuffle(PASTQ).slice(0,half)));}
     if(!pool.length){alert('沒有可用題目');return;}
     examState={running:true,qs:pool,started:Date.now(),secs:timed?pool.length*60:0,timer:null};renderExam();
@@ -408,11 +421,11 @@ function renderExam(){
 function finishExam(){
   const s=examState;if(s.timer)clearInterval(s.timer);s.running=false;
   const divs=$$('.q');let c=0;const byMod={};
-  divs.forEach((d,i)=>{const q=s.qs[i];const ok=revealQuestion(d,q);if(ok)c++;const k=q.mod||(q.topic&&pastTopic(q.topic)?'T:'+q.topic:'past');byMod[k]=byMod[k]||{c:0,t:0};byMod[k].t++;if(ok)byMod[k].c++;});
+  divs.forEach((d,i)=>{const q=s.qs[i];const ok=revealQuestion(d,q);if(ok)c++;const k=q.mod||(q.official?'C:'+q.chapter:(q.topic&&pastTopic(q.topic)?'T:'+q.topic:'past'));byMod[k]=byMod[k]||{c:0,t:0};byMod[k].t++;if(ok)byMod[k].c++;});
   const score=Math.round(c/s.qs.length*100);
   const log=store.get('examlog',[]);log.push({d:new Date().toLocaleDateString('zh-Hant-TW'),n:s.qs.length,c,s:score});store.set('examlog',log.slice(-30));
   const sum=document.createElement('div');sum.className='card';sum.innerHTML=`<h3 style="margin-top:0">成績:${score} 分(答對 ${c} / ${s.qs.length})</h3>
-    <div class="tablewrap"><table><tr><th>章節</th><th>答對 / 題數</th><th>正確率</th></tr>${Object.entries(byMod).map(([k,v])=>`<tr><td>${k==='past'?'匯入考古題':k.startsWith('T:')?esc(pastTopic(k.slice(2)).title||pastTopic(k.slice(2)).name||k):esc(modById(k).name)}</td><td class="mono">${v.c} / ${v.t}</td><td class="mono">${Math.round(v.c/v.t*100)}%</td></tr>`).join('')}</table></div>
+    <div class="tablewrap"><table><tr><th>章節</th><th>答對 / 題數</th><th>正確率</th></tr>${Object.entries(byMod).map(([k,v])=>`<tr><td>${k==='past'?'匯入考古題':k.startsWith('T:')?esc(pastTopic(k.slice(2)).title||pastTopic(k.slice(2)).name||k):k.startsWith('C:')?'彙編:'+esc(OFF_CH_NAMES[+k.slice(2)]):esc(modById(k).name)}</td><td class="mono">${v.c} / ${v.t}</td><td class="mono">${Math.round(v.c/v.t*100)}%</td></tr>`).join('')}</table></div>
     <div class="btnrow"><a class="btn primary" href="#/wrong">去錯題本</a><button class="btn" id="again">再考一次</button></div>`;
   $('#app').insertBefore(sum,$('#list'));$('#app').querySelector('h2').textContent='模擬考結果';$$('#submit,#submit2').forEach(b=>b.remove());
   $('#again').addEventListener('click',()=>{examState=null;viewExam();});window.scrollTo(0,0);
@@ -479,6 +492,9 @@ function viewPastPack(manual){
   <p class="tiny">每屆 100 題,保留原題號、選項順序與原卷答案;解析為本站編寫,非主辦單位官方解析。第 91~100 題可開啟該屆單證附件。${PAST.updated?`內容整理基準日 ${esc(PAST.updated)}。`:''}</p>
   <div class="notice">第 21 屆已對照官方釋疑;第 17~20 屆採原卷所列答案,最終釋疑未完成核實。時事題請依「當屆」情境作答,不要套用現行規則。</div>
   <div id="eds"></div>
+  ${window.OFFICIAL?`<h3>官方試題彙編(${OFFQ.filter(q=>q.chapter<12).length} 題 + ${Object.keys(OFFICIAL.caseSets).length} 組信用狀實例)</h3>
+  <div class="notice"><b>為什麼這份很重要:</b>主辦單位在彙編中說明,每年正式考題「依公告比率自本彙編 350 題中選出歷屆考題,加上當屆新題」——也就是正式考試有一部分直接從這裡抽。題目依官方 12 大命題方向分類;每題附解析(本站編寫、沿用同題屆次解析、或原卷公布的解答算式),皆非主辦單位官方解析。</div>
+  <div class="grid two" id="offch"></div>`:''}
   <h3>依題型練習</h3><div class="grid two" id="topics"></div>
   <div class="btnrow" style="margin-top:14px"><a class="btn" href="#/paststats">題型統計</a></div>
   <details style="margin-top:20px"><summary style="cursor:pointer;font-weight:700">手動貼上匯入(另有其他來源時使用)</summary><div id="manualwrap"></div></details>`;
@@ -488,6 +504,9 @@ function viewPastPack(manual){
       ${ed.sourceLabel?`<p class="tiny">來源:${esc(ed.sourceLabel)}</p>`:''}
       <div class="btnrow"><a class="btn primary small" href="#/pastq/${esc(ed.exam)}">逐題練習(即時詳解)</a><a class="btn coral small" href="#/exam/${esc(ed.exam)}">整卷模擬(100 題計時)</a>${ed.casePages.length?`<button class="btn small" data-case="${esc(ed.exam)}">📎 單證附件</button>`:''}</div>`;
     const cb=$('[data-case]',d);if(cb)cb.addEventListener('click',()=>openCasePages(ed.exam));$('#eds').appendChild(d);});
+  if(window.OFFICIAL){[2,3,4,5,6,7,8,9,10,11,12].forEach(ch=>{const qs=offChapter(ch);let done=0,c=0,t=0;qs.forEach(q=>{const s=st[q.id];if(s){done++;t+=s.t;c+=s.c;}});
+      const b=document.createElement('button');b.className='modcard';b.innerHTML=`<span class="ic">📗</span><span><span class="t">${ch===12?'第十二章 ':''}${esc(OFF_CH_NAMES[ch])}</span><br><span class="st">${ch===12?Object.keys(OFFICIAL.caseSets).length+' 組實例 · ':''}${qs.length} 題${done?' · 已做 '+done+' · 正確率 '+(t?Math.round(c/t*100):0)+'%':''}</span></span>`;
+      b.addEventListener('click',()=>location.hash='#/official/'+ch);$('#offch').appendChild(b);});}
   PAST.curriculum.forEach(t=>{const n=PASTQ.filter(q=>String(q.topic)===String(t.id)).length;const b=document.createElement('button');b.className='modcard';b.innerHTML=`<span class="ic">📘</span><span><span class="t">${esc(t.title||t.name||t.id)}</span><br><span class="st">${n} 題 · <a href="#/lesson/${esc(t.id)}">看教材</a></span></span>`;b.addEventListener('click',()=>location.hash='#/pasttopic/'+t.id);$('#topics').appendChild(b);});
   const mw=$('#manualwrap');mw.innerHTML=`<div class="card"><label class="f">名稱</label><input type="text" id="pname" placeholder="例:模擬題"><label class="f">試題文字</label><textarea class="imp" id="ptext"></textarea><div class="btnrow"><button class="btn primary" id="pimp">解析並匯入</button></div><div id="pmsg" class="tiny"></div></div><div id="plist"></div>`;
   manual.forEach((p,pi)=>{const d=document.createElement('div');d.className="card";d.innerHTML=`<b>${esc(p.name)}</b> <span class="pill blue">${p.q.length} 題</span><div class="btnrow"><a class="btn primary small" href="#/pastq/m${pi}">練習</a><button class="btn small" data-del="${pi}">刪除</button></div>`;$('[data-del]',d).addEventListener('click',()=>{const arr=store.get('past',[]);arr.splice(pi,1);store.set('past',arr);viewPast();});$('#plist').appendChild(d);});
@@ -499,6 +518,20 @@ function viewPastEdition(ex){const qs=PASTQ.filter(q=>q.exam===ex).sort((a,b)=>a
 function viewPastTopic(tid){const t=pastTopic(tid);const qs=shuffle(PASTQ.filter(q=>String(q.topic)===String(tid)));
   app.innerHTML=`<p class="tiny"><a href="#/past">← 考古題</a> · <a href="#/lesson/${esc(tid)}">看教材</a></p><h2>題型:${esc(t?(t.title||t.name||tid):tid)}</h2><p class="tiny">${qs.length} 題,跨屆隨機排序;重複考題按屆保留。</p><span class="pill teal" id="score">0 / 0</span><div id="list"></div>`;
   let c=0,n=0;qs.forEach((q,i)=>$('#list').appendChild(renderQuestion(q,i,{onAnswer:(q,ok)=>{n++;if(ok)c++;$('#score').textContent=c+' / '+n;}})));}
+function viewOfficial(ch,set){ch=+ch;if(!window.OFFICIAL||!OFF_CH_NAMES[ch]){location.hash='#/past';return;}
+  if(ch===12&&!set){app.innerHTML=`<p class="tiny"><a href="#/past">← 考古題</a></p><h2>📗 第十二章 信用狀實例分析及單證填製</h2><p class="tiny">彙編收錄 5 組實例,每組 10 題並附該組的信用狀、匯票／發票與提單。這一章官方註明「僅供考生參考題型並作練習」,正式考試的第 91~100 題會另出新題。</p><div id="sets"></div>`;
+    Object.entries(OFFICIAL.caseSets).forEach(([n,s])=>{const qs=OFFQ.filter(q=>q.caseSet===+n);const d=document.createElement('div');d.className='edcard';
+      d.innerHTML=`<div class="eh">實例 ${n}<span class="pill blue">L/C ${esc(s.lc)}</span><span class="pill teal">${qs.length} 題</span>${s.issue?`<span class="pill gold">開狀 20${s.issue.slice(0,2)}/${s.issue.slice(2,4)}/${s.issue.slice(4)}</span>`:''}</div><div class="btnrow"><a class="btn primary small" href="#/official/12/${n}">練習這組</a><button class="btn small" data-set="${n}">📎 附件</button></div>`;
+      $('[data-set]',d).addEventListener('click',()=>openImages('官方彙編 實例 '+n+' 附件',s.pages));$('#sets').appendChild(d);});return;}
+  const qs=ch===12?OFFQ.filter(q=>q.caseSet===+set):offChapter(ch);
+  const subs=[...new Set(qs.map(q=>q.sub).filter(Boolean))];
+  app.innerHTML=`<p class="tiny"><a href="#/past">← 考古題</a>${ch===12?' · <a href="#/official/12">實例列表</a>':''}</p><h2>📗 ${ch===12?'實例 '+set+' ':''}${esc(OFF_CH_NAMES[ch])}</h2>
+    <div class="btnrow"><span class="pill teal" id="score">0 / 0</span>${ch===12?`<button class="btn small" id="cp">📎 信用狀與單據</button>`:`<button class="btn small" id="shuf">${store.get('shuffle',false)?'✔ 隨機順序':'隨機順序'}</button>`}${subs.length>1?`<select id="subsel" style="width:auto;font-family:var(--sans)"><option value="">全部子題型(${qs.length})</option>${subs.map(x=>`<option value="${esc(x)}">${esc(x)}(${qs.filter(q=>q.sub===x).length})</option>`).join('')}</select>`:''}</div><div id="list"></div>`;
+  if($('#cp'))$('#cp').addEventListener('click',()=>openImages('官方彙編 實例 '+set+' 附件',OFFICIAL.caseSets[set].pages));
+  if($('#shuf'))$('#shuf').addEventListener('click',()=>{store.set('shuffle',!store.get('shuffle',false));viewOfficial(ch,set);});
+  const render=()=>{const sub=$('#subsel')?$('#subsel').value:'';let list=qs.filter(q=>!sub||q.sub===sub);if(ch!==12&&store.get('shuffle',false))list=shuffle(list);$('#list').innerHTML='';let c=0,t=0;$('#score').textContent='0 / 0';
+    list.forEach((q,i)=>$('#list').appendChild(renderQuestion(q,i,{onAnswer:(q,ok)=>{t++;if(ok)c++;$('#score').textContent=c+' / '+t;}})));};
+  if($('#subsel'))$('#subsel').addEventListener('change',render);render();window.scrollTo(0,0);}
 function viewPastStats(){const eds=Object.keys(PAST.editions).sort((a,b)=>+a-+b);
   app.innerHTML=`<p class="tiny"><a href="#/past">← 考古題</a></p><h2>題型統計</h2><div class="notice">統計方式:每題只標一個主要題型;重複考題按屆保留;信用狀實例(第 91~100 題)獨立計數。<b>此為本站整理,不是主辦單位的官方配分。</b></div>
   <div class="tablewrap"><table><tr><th>題型</th>${eds.map(e=>`<th>第 ${esc(e)} 屆</th>`).join('')}<th>合計</th></tr>${PAST.curriculum.map(t=>{const row=eds.map(e=>PASTQ.filter(q=>q.exam===e&&String(q.topic)===String(t.id)).length);return `<tr><td><a href="#/pasttopic/${esc(t.id)}">${esc(t.title||t.name||t.id)}</a></td>${row.map(n=>`<td class="mono">${n}</td>`).join('')}<td class="mono"><b>${row.reduce((a,b)=>a+b,0)}</b></td></tr>`;}).join('')}</table></div>`;}
@@ -536,7 +569,7 @@ function viewPastQ(pi){
 /* ========== 錯題本 ========== */
 function viewWrong(){
   const w=store.get('wrong',[]);const past=store.get('past',[]);
-  const items=w.map(id=>{let q=ALLQ.find(x=>x.id===id)||PASTQ.find(x=>x.id===id);if(!q&&id.startsWith('past-')){past.forEach(p=>p.q.forEach((x,i)=>{if('past-'+p.name+'-'+i===id)q={...x,id,src:p.name};}));}return q;}).filter(Boolean);
+  const items=w.map(id=>{let q=ALLQ.find(x=>x.id===id)||PASTQ.find(x=>x.id===id)||OFFQ.find(x=>x.id===id);if(!q&&id.startsWith('past-')){past.forEach(p=>p.q.forEach((x,i)=>{if('past-'+p.name+'-'+i===id)q={...x,id,src:p.name};}));}return q;}).filter(Boolean);
   app.innerHTML=`<h2>錯題本</h2><p class="tiny">答錯的題目會自動收進來;再做一次答對就會移除。目前 ${items.length} 題。</p>${items.length?'<div class="btnrow"><button class="btn small" id="clr">清空錯題本</button></div>':''}<div id="list"></div>`;
   if($('#clr'))$('#clr').addEventListener('click',()=>{if(confirm('確定清空?')){store.set('wrong',[]);viewWrong();}});
   shuffle(items).forEach((q,i)=>$('#list').appendChild(renderQuestion(q,i,{showMod:true})));
@@ -552,9 +585,9 @@ updateCountdown();
 
 /* ========== 路由 ========== */
 function route(){const h=location.hash||'#/home';const [_,page,arg]=h.split('/');
-  $$('#tabs a').forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#/'+page||(['pastq','pasttopic','paststats'].includes(page)&&a.getAttribute('href')==='#/past')||(page==='lesson'&&a.getAttribute('href')==='#/notes')));
+  $$('#tabs a').forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#/'+page||(['pastq','pasttopic','paststats','official'].includes(page)&&a.getAttribute('href')==='#/past')||(page==='lesson'&&a.getAttribute('href')==='#/notes')));
   if(examState&&examState.running&&page!=='exam'){if(!confirm('模擬考進行中,離開會放棄本次作答。確定離開?')){location.hash='#/exam';return;}clearInterval(examState.timer);examState=null;}
-  const map={home:viewHome,plan:viewPlan,notes:()=>viewNotes(arg),practice:()=>viewPractice(arg),calc:viewCalc,vocab:viewVocab,exam:()=>viewExam(arg),past:viewPast,pastq:()=>viewPastQ(arg),pasttopic:()=>viewPastTopic(arg),paststats:viewPastStats,lesson:()=>viewLesson(arg),wrong:viewWrong,cheat:viewCheat};
+  const map={home:viewHome,plan:viewPlan,notes:()=>viewNotes(arg),practice:()=>viewPractice(arg),calc:viewCalc,vocab:viewVocab,exam:()=>viewExam(arg),past:viewPast,pastq:()=>viewPastQ(arg),official:()=>viewOfficial(arg,(location.hash.split('/')[3]||'')),pasttopic:()=>viewPastTopic(arg),paststats:viewPastStats,lesson:()=>viewLesson(arg),wrong:viewWrong,cheat:viewCheat};
   (map[page]||viewHome)();if(page!=='notes')window.scrollTo(0,0);}
 window.addEventListener('hashchange',route);route();
 </script>
