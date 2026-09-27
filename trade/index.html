@@ -132,6 +132,12 @@ label.f{display:block;font-size:13.5px;font-weight:700;color:var(--muted);margin
 .lightbox .lbin{max-width:960px;margin:0 auto}
 .lightbox img{width:100%;background:#fff;border-radius:8px;margin:10px 0}
 .lightbox .lbbar{display:flex;gap:10px;align-items:center;color:#fff;font-weight:700;position:sticky;top:0;background:rgba(10,14,30,.9);padding:6px 0}
+.lightbox .doc,.lightbox .lc{background:#fff;color:var(--ink);border-radius:10px;padding:12px 14px;margin:8px 0;font-size:13.5px;line-height:1.7}
+.lightbox .lc{border-collapse:collapse;width:100%}.lightbox .lc td{border:1px solid var(--line);padding:5px 8px;vertical-align:top}.lightbox .lc td:nth-child(2){font-family:var(--mono);white-space:nowrap;color:var(--muted)}.lightbox .lc td:first-child{white-space:nowrap;color:var(--muted)}
+.lightbox .doc h4{text-align:center;margin:4px 0 10px;letter-spacing:.1em}.lightbox .doc p{margin:4px 0}.lightbox .doc .r{float:right}.lightbox .doc .c{text-align:center}.lightbox .doc u{text-decoration:underline;padding:0 6px}
+.lightbox .doc table{margin:8px 0;font-size:13px}.lightbox .doc table td,.lightbox .doc table th{border:1px solid var(--line);padding:5px 7px;vertical-align:top}
+.blank{display:inline-block;background:var(--gold-bg);color:#8a5d00;font-weight:900;border-radius:6px;padding:0 10px;margin:0 4px;font-family:var(--mono)}
+.lightbox .pgtitle{color:#c9d3f0;margin:14px 0 4px;font-weight:700}
 .edcard{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin:10px 0}
 .edcard .eh{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-weight:900;font-size:17px}
 footer{text-align:center;font-size:13px;color:var(--muted);padding:30px 16px;border-top:1px solid var(--line);margin-top:40px}
@@ -152,6 +158,7 @@ footer{text-align:center;font-size:13px;color:var(--muted);padding:30px 16px;bor
 <footer>本站為個人備考用的教學練習網站,題目為依官方公布之 12 大命題方向自行編寫的仿真練習題,非主辦單位原題。官方資訊請以台北市進出口商業同業公會「國際貿易大會考」網站為準。</footer>
 <script src="bank.js"></script>
 <script src="past_data.js"></script>
+<script src="case_text.js"></script>
 <script>
 'use strict';
 /* ========== 工具 ========== */
@@ -201,9 +208,12 @@ function renderQuestion(q,idx,opts={}){
 function extraExpl(q){let h='';if(q.note)h+=`<div class="note">📝 校核註記:${esc(q.note)}</div>`;if(q.historical)h+=`<div class="note">🕰 本題依「當屆」的時事與規定作答,現行規則可能已不同。</div>`;
   if(q.exam){h+=`<div class="srcpg">來源:第 ${esc(q.exam)} 屆第 ${q.number} 題${q.page?`(原卷 PDF 第 ${esc(q.page)} 頁)`:''} · 解析為本站編寫,非主辦單位官方解析${q.topic&&pastTopic(q.topic)?` · 題型:<a href="#/lesson/${esc(q.topic)}">${esc(pastTopic(q.topic).title||pastTopic(q.topic).name||q.topic)}</a>`:''}</div>`;}return h;}
 function pastTopic(id){return window.PAST&&PAST.curriculum.find(t=>String(t.id)===String(id));}
-function openCasePages(ex){const ed=window.PAST&&PAST.editions[ex];if(!ed)return;const lb=document.createElement('div');lb.className='lightbox';
-  lb.innerHTML=`<div class="lbin"><div class="lbbar"><span>第 ${esc(ex)} 屆單證附件(第 91~100 題用)</span><button class="btn small" style="margin-left:auto;background:#fff" data-close>關閉 ✕</button></div>${ed.casePages.map((p,i)=>`<p style="color:#c9d3f0;margin:6px 0 0">第 ${i+1} 頁</p><img src="${esc(p)}" alt="第 ${esc(ex)} 屆單證附件第 ${i+1} 頁" data-path="${esc(p)}">`).join('')}</div>`;
-  $$('img',lb).forEach(img=>img.addEventListener('error',()=>{const d=document.createElement('div');d.className='notice';d.textContent='此頁附件影像尚未上傳('+img.dataset.path+')。請對照官方原卷 PDF 的第 91~100 題附件作答。';img.replaceWith(d);}));
+function openCasePages(ex){const ed=window.PAST&&PAST.editions[ex];if(!ed)return;const texts=(window.CASE_TEXT&&CASE_TEXT[ex])||[];const names=['信用狀','匯票與商業發票','海運提單'];
+  const lb=document.createElement('div');lb.className='lightbox';
+  lb.innerHTML=`<div class="lbin"><div class="lbbar"><span>第 ${esc(ex)} 屆單證附件(第 91~100 題用)</span><button class="btn small" style="margin-left:auto;background:#fff" data-close>關閉 ✕</button></div>
+  <p class="tiny" style="color:#aab4d0">影像為原卷附件;下方「文字轉錄版」依原卷逐字轉錄,<span class="blank" style="font-size:12px">(1)</span> 為題目空格編號、XXX 為原卷省略處。</p>
+  ${ed.casePages.map((p,i)=>`<p class="pgtitle">第 ${i+1} 頁 · ${names[i]||''}</p><img src="${esc(p)}" alt="第 ${esc(ex)} 屆單證附件第 ${i+1} 頁" data-path="${esc(p)}">${texts[i]?`<details ${texts[i]?'open':''}><summary style="color:#fff;cursor:pointer;font-weight:700">文字轉錄版</summary>${texts[i]}</details>`:''}`).join('')}</div>`;
+  $$('img',lb).forEach(img=>img.addEventListener('error',()=>{const d=document.createElement('p');d.className='tiny';d.style.color='#aab4d0';d.textContent='(影像尚未上傳,請看文字轉錄版)';img.replaceWith(d);}));
   lb.addEventListener('click',e=>{if(e.target===lb||e.target.hasAttribute('data-close'))lb.remove();});document.body.appendChild(lb);}
 /* 套件題目 → 網站題目格式(id 加前綴避免衝突) */
 const PASTQ=(window.PAST?PAST.questions:[]).map(q=>({...q,id:'P-'+q.id,src:'第 '+q.exam+' 屆'}));
