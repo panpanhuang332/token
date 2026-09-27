@@ -202,7 +202,8 @@ function extraExpl(q){let h='';if(q.note)h+=`<div class="note">📝 校核註記
   if(q.exam){h+=`<div class="srcpg">來源:第 ${esc(q.exam)} 屆第 ${q.number} 題${q.page?`(原卷 PDF 第 ${esc(q.page)} 頁)`:''} · 解析為本站編寫,非主辦單位官方解析${q.topic&&pastTopic(q.topic)?` · 題型:<a href="#/lesson/${esc(q.topic)}">${esc(pastTopic(q.topic).title||pastTopic(q.topic).name||q.topic)}</a>`:''}</div>`;}return h;}
 function pastTopic(id){return window.PAST&&PAST.curriculum.find(t=>String(t.id)===String(id));}
 function openCasePages(ex){const ed=window.PAST&&PAST.editions[ex];if(!ed)return;const lb=document.createElement('div');lb.className='lightbox';
-  lb.innerHTML=`<div class="lbin"><div class="lbbar"><span>第 ${esc(ex)} 屆單證附件(第 91~100 題用)</span><button class="btn small" style="margin-left:auto;background:#fff" data-close>關閉 ✕</button></div>${ed.casePages.map((p,i)=>`<p style="color:#c9d3f0;margin:6px 0 0">第 ${i+1} 頁</p><img src="${esc(p)}" alt="第 ${esc(ex)} 屆單證附件第 ${i+1} 頁">`).join('')}</div>`;
+  lb.innerHTML=`<div class="lbin"><div class="lbbar"><span>第 ${esc(ex)} 屆單證附件(第 91~100 題用)</span><button class="btn small" style="margin-left:auto;background:#fff" data-close>關閉 ✕</button></div>${ed.casePages.map((p,i)=>`<p style="color:#c9d3f0;margin:6px 0 0">第 ${i+1} 頁</p><img src="${esc(p)}" alt="第 ${esc(ex)} 屆單證附件第 ${i+1} 頁" data-path="${esc(p)}">`).join('')}</div>`;
+  $$('img',lb).forEach(img=>img.addEventListener('error',()=>{const d=document.createElement('div');d.className='notice';d.textContent='此頁附件影像尚未上傳('+img.dataset.path+')。請對照官方原卷 PDF 的第 91~100 題附件作答。';img.replaceWith(d);}));
   lb.addEventListener('click',e=>{if(e.target===lb||e.target.hasAttribute('data-close'))lb.remove();});document.body.appendChild(lb);}
 /* 套件題目 → 網站題目格式(id 加前綴避免衝突) */
 const PASTQ=(window.PAST?PAST.questions:[]).map(q=>({...q,id:'P-'+q.id,src:'第 '+q.exam+' 屆'}));

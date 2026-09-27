@@ -12,7 +12,8 @@ import json, os, re, shutil, sys, hashlib
 
 if len(sys.argv) < 2:
     print(__doc__); sys.exit(1)
-SRC = os.path.abspath(sys.argv[1])
+ALLOW_MISSING = '--allow-missing-assets' in sys.argv
+SRC = os.path.abspath([a for a in sys.argv[1:] if not a.startswith('--')][0])
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_JS = os.path.join(ROOT, 'trade', 'past_data.js')
 OUT_ASSETS = os.path.join(ROOT, 'trade', 'assets')
@@ -109,7 +110,8 @@ for ex, e in editions.items():
     for p in pages:
         src = os.path.join(SRC, p)
         if not os.path.isfile(src):
-            errors.append(f'第 {ex} 屆附件不存在:{p}')
+            (warns if ALLOW_MISSING else errors).append(f'第 {ex} 屆附件不存在:{p}' + ('(暫以路徑保留)' if ALLOW_MISSING else ''))
+            if ALLOW_MISSING: rel_out.append('assets/' + f'{ex}-' + os.path.basename(p))
             continue
         with open(src, 'rb') as f:
             head = f.read(4)
@@ -126,7 +128,7 @@ for ex in by_exam:
     if ex not in ed_out:
         errors.append(f'第 {ex} 屆缺少 editions 資料')
 if asset_count != 15:
-    errors.append(f'有效附件 {asset_count} ≠ 15')
+    (warns if ALLOW_MISSING else errors).append(f'有效附件 {asset_count} ≠ 15')
 
 # ---------- curriculum ----------
 topics = cur.get('topics') if isinstance(cur, dict) else cur
